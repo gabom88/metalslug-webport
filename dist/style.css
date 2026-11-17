@@ -117,3 +117,127 @@ body:not(.playing) main { padding-top: clamp(.75rem, 3vh, 2rem); }
   height: calc(16 / 224 * 100%);
 }
 #title-credit-link:focus-visible { outline: 2px solid var(--accent); }
+.play-settings { max-width: 32rem; margin: 0 auto 1rem; padding: .8rem; border: 1px solid #514e40; border-radius: .55rem; }
+.play-settings > label { margin-right: .5rem; }
+select { font: inherit; background: #292a22; color: inherit; padding: .4rem; border: 1px solid #686657; border-radius: .25rem; }
+.mods { margin-top: .8rem; }
+.mods summary { cursor: pointer; font-weight: 700; }
+.mods p, #save-status { font-size: .8rem; line-height: 1.4; color: #dbd5c2; }
+.switch-row { display: flex; gap: .8rem; justify-content: space-between; align-items: center; padding: .65rem 0; }
+.switch-row input { width: 2rem; height: 1.2rem; accent-color: var(--accent); }
+.save-panel { border-bottom: 1px solid #514e40; margin-bottom: .8rem; }
+.save-panel h3 { margin: 0 0 .6rem; font-size: 1rem; }
+#save-status:empty { display: none; }
+
+.play-settings .display-label { display: block; margin-top: .8rem; margin-bottom: .35rem; }
+body.playing.stretched { overflow: hidden; background: #080907; }
+body.playing.stretched main { width: 100%; padding: 0; }
+body.playing.stretched #arcade { margin: 0; padding: 0; }
+body.playing.stretched .screen { width: 100%; height: 100dvh; padding: 0; place-items: stretch; align-content: stretch; }
+body.playing.stretched #arcade .game-display { width: 100%; height: 100%; }
+body.playing.stretched canvas { width: 100%; height: 100%; aspect-ratio: auto; }
+#game-display-mode { max-width: 65%; }
+body.playing.stretched .screen { grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+body.playing.stretched .game-display, body.playing.stretched canvas { min-width: 0; min-height: 0; }
+
+/* Launcher: balanced artwork and controls, with a shared installation footer. */
+body:not(.playing) { background: radial-gradient(ellipse at 22% 25%, #393c29 0, transparent 55%), #11130f; }
+body:not(.playing) main { width: min(100% - 3rem, 72rem); padding: clamp(1.5rem, 5dvh, 4rem) 0; }
+#launcher { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; align-items: stretch; }
+.launcher-hero { display: flex; flex-direction: column; justify-content: center; padding: 1.5rem 2rem; position: relative; border: 1px solid #ffffff12; border-radius: 1.25rem; background: radial-gradient(ellipse at 50% 40%, #69704025, transparent 68%), #1a1d16; }
+.cover-art { height: clamp(13rem, 29dvh, 19rem); max-width: 100%; filter: drop-shadow(0 18px 20px #0007); }
+.cover h1 { margin: -.6rem auto 0; position: relative; }
+.cover h1 img { width: min(100%, 14rem); }
+.launch-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: .65rem; margin: 1.5rem 0 0; }
+.launch-actions button { min-height: 3.2rem; padding: .75rem; border-radius: .65rem; font-size: .9rem; }
+.launch-actions .primary { background: #f2bd52; border-color: #f2bd52; box-shadow: 0 4px 0 #98702b; }
+.launch-actions .primary:hover:not(:disabled) { background: #ffcf70; transform: translateY(-1px); }
+.launch-actions #status { grid-column: 1 / -1; font-size: .8rem; }
+#launcher .play-settings { width: 100%; max-width: none; margin: 0; padding: 2rem; border: 1px solid #ffffff18; border-radius: 1.25rem; background: #1c2019; }
+.eyebrow { display: block; font-size: .65rem; font-weight: 800; letter-spacing: .17em; color: #e7bb65; margin-bottom: .65rem; }
+.section-heading { padding-bottom: 1.5rem; border-bottom: 1px solid #ffffff12; margin-bottom: 1.5rem; }
+.section-heading h2 { margin: 0 0 .5rem; font-size: clamp(1.5rem, 2.5vw, 2rem); letter-spacing: -.035em; }
+.section-heading p { margin: 0; color: #a9af9e; font-size: .9rem; }
+.settings-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.setting-field { min-width: 0; }
+#launcher .setting-field label { display: block; margin: 0 0 .6rem; font-size: .8rem; color: #c4cab9; }
+#launcher select { display: block; width: 100%; min-height: 2.9rem; padding: .65rem .75rem; border: 1px solid #ffffff21; border-radius: .6rem; background: #12160f; font-size: .85rem; }
+#launcher select:focus-visible, #launcher summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+#launcher .mods { margin-top: 1.6rem; }
+#launcher .mods summary { font-size: .8rem; color: #e7bb65; padding-bottom: .75rem; }
+.mod-item { padding: 1rem 0; border-top: 1px solid #ffffff12; }
+#launcher .mod-item .switch-row { padding: 0; font-size: .95rem; font-weight: 650; }
+#launcher .mod-item p { margin: .5rem 0 0; color: #a9af9e; line-height: 1.5; font-size: .8rem; }
+#launcher .switch-row input { appearance: none; width: 2.65rem; height: 1.5rem; border-radius: 2rem; background: #454c3e; cursor: pointer; position: relative; flex-shrink: 0; margin: 0; transition: background .15s; }
+#launcher .switch-row input::before { content: ''; position: absolute; width: 1.1rem; height: 1.1rem; top: .2rem; left: .2rem; background: #e7e9df; border-radius: 50%; transition: transform .15s; }
+#launcher .switch-row input:checked { background: #c49136; }
+#launcher .switch-row input:checked::before { transform: translateX(1.15rem); }
+.blood-setting { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 0 1rem; }
+.blood-setting > label { font-size: .95rem; font-weight: 650; }
+#launcher .blood-setting p { grid-column: 1 / -1; }
+#launcher .install-card { grid-column: 1 / -1; padding: 1.5rem 2rem; background: #191c16; border: 1px solid #ffffff12; border-radius: 1.25rem; }
+.install-heading h2 { font-size: 1.25rem; letter-spacing: -.02em; }
+.install-platforms { gap: 1.5rem; margin-top: 1.25rem; }
+.install-platforms > div { padding: .2rem 0 .2rem 1rem; border-color: #5d684b; }
+.install-platforms h3 { font-size: .85rem; color: #e1e5d8; }
+.install-platforms p { font-size: .8rem; color: #a9af9e; line-height: 1.65; }
+#launcher .install-note { color: #89927e; font-size: .75rem; }
+@media (max-width: 760px) {
+ body:not(.playing) main { width: min(100% - 1.5rem, 32rem); padding: 1rem 0 1.5rem; }
+ #launcher { grid-template-columns: 1fr; gap: 1rem; }
+ .launcher-hero { padding: 1.25rem; }
+ .cover-art { height: clamp(11rem, 28dvh, 16rem); }
+ .cover h1 img { width: 11rem; }
+ .launch-actions { margin-top: 1rem; }
+ #launcher .play-settings, #launcher .install-card { padding: 1.25rem; }
+ .section-heading { margin-bottom: 1rem; padding-bottom: 1rem; }
+ .section-heading h2 { font-size: 1.5rem; }
+ .settings-fields { gap: .65rem; }
+ #launcher select { padding-inline: .5rem; font-size: .8rem; }
+ .install-platforms { grid-template-columns: 1fr; gap: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { #launcher * { transition: none; } }
+@media (max-width: 460px) { .settings-fields { grid-template-columns: 1fr; } }
+#game-menu { width: min(32rem, calc(100% - 1.5rem)); border: 1px solid #ffffff26; border-radius: 1.25rem; background: #191e16; box-shadow: 0 24px 90px #0009; }
+#game-menu::backdrop { background: #070b08b8; backdrop-filter: blur(7px); }
+#game-menu .menu-panel { padding: 1.5rem; }
+#game-menu .menu-heading { margin-bottom: 1.25rem; }
+#game-menu .menu-heading h2 { font-size: 1.45rem; letter-spacing: -.035em; }
+#game-menu .eyebrow { margin-bottom: .4rem; }
+#menu-close { border-radius: 50%; width: 2.3rem; height: 2.3rem; padding: 0; background: #ffffff09; border-color: #ffffff20; }
+.menu-section { padding: 1rem; border: 1px solid #ffffff14; border-radius: .8rem; margin: 0 0 .8rem; background: #ffffff03; }
+#game-menu .menu-section h3 { margin: 0 0 .8rem; font-size: .72rem; color: #b7c2ab; text-transform: uppercase; letter-spacing: .12em; }
+#game-menu .switch-row { padding: .2rem 0; font-size: .85rem; }
+#game-menu select { min-height: 2.5rem; border: 1px solid #ffffff22; border-radius: .5rem; background: #10160e; font-size: .8rem; }
+#game-menu .menu-actions { gap: .6rem; }
+#game-menu .menu-actions button { min-height: 2.8rem; border-radius: .55rem; background: #2b3425; border-color: #ffffff16; font-size: .8rem; }
+#game-menu button:hover:not(:disabled) { border-color: #e7bb65; }
+#game-menu .save-panel .switch-row { margin-top: 1rem; }
+#game-menu #autosave { accent-color: #e7bb65; }
+#game-menu .credit-link { font-size: .8rem; }
+#menu-resume { width: 100%; min-height: 3rem; display: flex; align-items: center; justify-content: space-between; border-radius: .65rem; margin-top: 1rem; }
+@media (max-width: 460px), (max-height: 500px) { #game-menu .menu-panel { padding: 1rem; } #game-menu .menu-heading h2 { font-size: 1.25rem; } }
+.launcher-credit { grid-column: 1 / -1; justify-self: center; color: #fff; font-size: clamp(.85rem, 1.5vw, 1rem); font-weight: 500; text-decoration: none; text-align: center; padding: .35rem .5rem; letter-spacing: .015em; }
+.launcher-credit:hover { text-decoration: underline; text-underline-offset: .25em; }
+.launcher-credit:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: .25rem; }
+.section-heading > .eyebrow:only-child { margin-bottom: 0; }
+.install-intro { margin: .6rem 0 0; font-size: .88rem; line-height: 1.5; font-weight: 400; color: #a9af9e; }
+/* Keep the launcher readable in narrow windows and touch devices. */
+.launcher-credit { font-size: clamp(1.25rem, 2.4vw, 1.8rem); font-weight: 650; line-height: 1.35; max-width: 100%; text-wrap: balance; padding: .5rem .75rem; }
+body:not(.playing) { min-width: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+#launcher, #launcher > *, .launcher-hero, .play-settings { min-width: 0; }
+@media (max-width: 900px), (pointer: coarse) and (orientation: portrait) {
+ body:not(.playing) main { width: calc(100% - 1.5rem); max-width: 34rem; padding: 1rem 0 1.5rem; }
+ #launcher { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+ .launcher-credit { font-size: clamp(1.25rem, 5vw, 1.6rem); padding: .5rem .25rem; }
+ .launcher-hero { padding: 1.25rem; }
+ .cover-art { height: clamp(11rem, 27dvh, 16rem); max-width: 100%; }
+ .cover h1 img { width: 11rem; }
+ .launch-actions { margin-top: 1rem; }
+ #launcher .play-settings, #launcher .install-card { padding: 1.25rem; }
+ .settings-fields { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+ #launcher select { font-size: 1rem; max-width: 100%; }
+ .install-platforms { grid-template-columns: minmax(0, 1fr); }
+ .blood-setting { grid-template-columns: minmax(0, 1fr); gap: .6rem; }
+ .blood-setting p { grid-column: auto; }
+}

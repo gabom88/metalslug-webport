@@ -1,3 +1,4 @@
+import { stateControls } from './saves.mjs';
 import { loadGameData } from './game-data.mjs';
 import { keyboardControls } from './keyboard.mjs';
 
@@ -11,17 +12,21 @@ const menu = $('game-menu');
 const menuButton = $('menu-btn');
 function closeMenu() {
   menu.close();
+  if (running) engine._web_pause(false);
   menuButton.setAttribute('aria-expanded', 'false');
 }
 menuButton.addEventListener('click', () => {
   if (touch.editing) return;
   clearInput();
+  if (running) engine._web_pause(true);
   menu.showModal();
   menuButton.setAttribute('aria-expanded', 'true');
 });
 $('menu-close').addEventListener('click', closeMenu);
+$('menu-resume').addEventListener('click', () => { closeMenu(); canvas.focus({ preventScroll: true }); });
 menu.addEventListener('click', (event) => { if (event.target === menu) closeMenu(); });
 menu.addEventListener('close', () => {
+  if (running && !touch.editing && !keysDialog.open) engine._web_pause(false);
   if (!menu.open) menuButton.setAttribute('aria-expanded', 'false');
 });
 
@@ -46,6 +51,7 @@ const keyboard = keyboardControls({
 });
 function showKeyboard() {
   clearInput();
+  if (running) engine._web_pause(true);
   keysDialog.showModal();
 }
 $('launcher-keys').addEventListener('click', showKeyboard);
@@ -55,6 +61,7 @@ $('game-keys').addEventListener('click', () => {
 });
 $('keyboard-close').addEventListener('click', () => keysDialog.close());
 $('keyboard-reset').addEventListener('click', keyboard.reset);
+keysDialog.addEventListener('close', () => { if (running) engine._web_pause(false); });
 keysDialog.addEventListener('click', (event) => { if (event.target === keysDialog) keysDialog.close(); });
 
 function syncInput() {
@@ -119,6 +126,7 @@ $('touch-config').addEventListener('click', () => {
   closeMenu();
   previousTouch = touch.shown;
   showTouch(true);
+  engine._web_pause(true);
   touch.setEditing(true, { onSelect: paintEditor });
   $('touch-editor').hidden = false;
   paintEditor();
@@ -142,6 +150,7 @@ $('ed-showall').addEventListener('click', () => { touch.showAll(); paintEditor()
 $('ed-reset').addEventListener('click', () => { touch.reset(); touch.setEditing(true); paintEditor(); });
 $('ed-done').addEventListener('click', () => {
   touch.setEditing(false);
+  engine._web_pause(false);
   $('touch-editor').hidden = true;
   showTouch(previousTouch);
   menuButton.focus({ preventScroll: true });
@@ -163,22 +172,45 @@ document.addEventListener('fullscreenchange', () => {
   $('fullscreen').textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
 });
 
-play.addEventListener('click', () => {
+play.addEventListener('click', async () => {
   $('launcher').hidden = true;
   $('arcade').hidden = false;
   document.body.classList.add('playing');
   running = true;
+  menuButton.disabled = true;
+  gameStatus.textContent = 'Iniciando partida…';
   showTouch(matchMedia('(pointer: coarse)').matches);
   try {
+    engine._web_options(Number($('mission').value), $('double-jump').checked);
+    engine._web_extra_options($('turbo-mod').checked, $('mirror-mod').checked);
+    engine._web_mod_options(false, Number($('blood-mode').value));
+    touch.setSetting('dashEnabled', false);
     const code = engine.callMain(['--rom-path', '/roms', '--scale', '1']);
+    while (!engine._web_is_ready()) await new Promise(requestAnimationFrame);
+    menuButton.disabled = false;
+    gameStatus.textContent = '';
     if (code) throw new Error(gameStatus.textContent || 'El motor no pudo iniciar.');
     canvas.focus({ preventScroll: true });
   } catch (error) {
     gameStatus.textContent = error.message;
     running = false;
+    menuButton.disabled = false;
   }
 });
 
+function setDisplayMode(mode) {
+ const value = mode === 'stretch' ? 'stretch' : 'fit';
+ document.body.classList.toggle('stretched', value === 'stretch');
+ $('display-mode').value = $('game-display-mode').value = value;
+ engine?._web_display_mode(value === 'stretch');
+ try { localStorage.setItem('mslug.display-mode', value); } catch {}
+}
+let savedDisplayMode = 'fit';
+try { savedDisplayMode = localStorage.getItem('mslug.display-mode') || 'fit'; } catch {}
+setDisplayMode(savedDisplayMode);
+for (const id of ['display-mode', 'game-display-mode']) $(id).addEventListener('change', event => {
+ savedDisplayMode = event.target.value; setDisplayMode(savedDisplayMode);
+});
 const installButton = $('install-app');
 let installPrompt;
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -218,6 +250,20 @@ try {
     },
   });
   status.textContent = '';
+  setDisplayMode(savedDisplayMode);
+  await stateControls({
+    engine, clearInput, doubleJump: $('double-jump'),
+    onRestoreMods: () => {
+      $('turbo-mod').checked = Boolean(engine._web_turbo_get());
+      $('mirror-mod').checked = Boolean(engine._web_mirror_get());
+      $('dash-mod').checked = false;
+      engine._web_mod_options(false, engine._web_blood_mode_get());
+      $('blood-mode').value = String(engine._web_blood_mode_get());
+      touch.setSetting('dashEnabled', $('dash-mod').checked);
+    },
+    canSave: () => running && Boolean(engine._web_is_ready()),
+    resume: () => { closeMenu(); canvas.focus({ preventScroll: true }); },
+  });
   play.disabled = false;
 } catch (error) {
   status.textContent = 'No se pudo cargar el juego. Recarga la página para reintentar.';

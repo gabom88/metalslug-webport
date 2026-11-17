@@ -10,6 +10,8 @@
  * are reproducible: `<frame>[-<end>] <button>[+<button>...]`, one per line.
  */
 #include "ng_internal.h"
+#include "state.h"
+#include <neogeorecomp/cpu.h>
 #include <neogeorecomp/bus.h>
 #include "romload.h"
 #include <stdio.h>
@@ -199,25 +201,159 @@ static void power_on(void) {
     ng_irq_pending = 4;        /* IRQ3 is asserted at power-on until the BIOS acks it */
 }
 
+static int web_ready, web_paused, web_double_jump, web_level, web_start_ticks;
+static unsigned web_previous_jump, web_extra_used;
+static uint8_t *web_prom;
+static uint8_t web_state_buffer[1024 * 1024];
+static double web_next;
+#include "mods.h"
+
+static void apply_level(int level) {
+    static const uint8_t scene[] = {0, 0, 1, 3, 2, 4, 5};
+    static const uint32_t handler[] = {0x967fe,0x967fe,0x96840,0x968c4,0x96882,0x96906,0x96948};
+    if (!web_prom) return;
+    web_prom[0x1925] = scene[level];
+    for (int i = 0; i < 4; i++) web_prom[0x1932+i] = (uint8_t)(handler[level] >> (24-i*8));
+}
+EMSCRIPTEN_KEEPALIVE void web_options(int level, int double_jump) {
+    web_level = level >= 0 && level <= 6 ? level : 0;
+    web_double_jump = !!double_jump;
+    apply_level(web_level);
+}
+EMSCRIPTEN_KEEPALIVE void web_pause(int paused) {
+    web_paused = !!paused;
+    web_next = 0;
+    window_flush_audio();
+}
+EMSCRIPTEN_KEEPALIVE int web_double_jump_enabled(void) { return web_double_jump; }
+EMSCRIPTEN_KEEPALIVE int web_is_ready(void) { return web_ready; }
+static void transfer_state(web_state_t *s) {
+    FIELD(ng_frame_start);
+    FIELD(s_fb);
+    FIELD(web_level);
+    FIELD(web_double_jump);
+    FIELD(web_start_ticks);
+    FIELD(web_previous_jump);
+    FIELD(web_extra_used);
+    FIELD(web_turbo_enabled);
+    FIELD(web_mirror_enabled);
+    FIELD(web_turbo_phase);
+    FIELD(web_dash_enabled);
+    FIELD(web_blood_mode);
+    FIELD(web_previous_dash);
+    FIELD(web_dash_ticks);
+    FIELD(web_dash_cooldown);
+    FIELD(web_dash_direction);
+    state_bus(s); state_lspc(s); state_video(s); state_io(s);
+    state_exec(s); state_audio(s); state_ym(s);
+}
+EMSCRIPTEN_KEEPALIVE uint8_t *web_state_buffer_ptr(void) { return web_state_buffer; }
+EMSCRIPTEN_KEEPALIVE int web_state_size(void) {
+    web_state_t count = {0};
+    transfer_state(&count);
+    return (int)(count.offset + 16);
+}
+static uint32_t state_hash(const uint8_t *bytes, size_t size) {
+    uint32_t hash = 2166136261u;
+    for (size_t i = 0; i < size; i++) hash = (hash ^ bytes[i]) * 16777619u;
+    return hash;
+}
+EMSCRIPTEN_KEEPALIVE int web_save_state(void) {
+    if (!web_ready) return 0;
+    size_t size = (size_t)web_state_size();
+    if (size > sizeof web_state_buffer) return 0;
+    web_state_t s = {web_state_buffer, size, 16, 0, 0};
+    transfer_state(&s);
+    if (s.failed) return 0;
+    uint32_t header[] = {0x4d535331, 1, (uint32_t)s.offset, state_hash(web_state_buffer+16,s.offset-16)};
+    memcpy(web_state_buffer, header, sizeof header);
+    return (int)s.offset;
+}
+EMSCRIPTEN_KEEPALIVE int web_load_state(int size) {
+    if (!web_ready || size != web_state_size() || (size_t)size > sizeof web_state_buffer) return 0;
+    uint32_t header[4];
+    memcpy(header, web_state_buffer, sizeof header);
+    if (header[0] != 0x4d535331 || header[1] != 1 || header[2] != (uint32_t)size ||
+        header[3] != state_hash(web_state_buffer+16,(size_t)size-16)) return 0;
+    web_state_t s = {web_state_buffer, (size_t)size, 16, 1, 0};
+    transfer_state(&s);
+    apply_level(web_level);
+    apply_blood_palette();
+    apply_dash_speed();
+    window_flush_audio();
+    web_next = 0;
+    return !s.failed;
+}
+static int at_title(void) {
+    static const char text[] = "Metal Slug port by Bardock";
+    for (unsigned i = 0; i < sizeof text-1; i++)
+        if (lspc_vram[0x70fa+i*32] != (0x2300 | (uint8_t)text[i])) return 0;
+    return 1;
+}
+static void double_jump(ng_input_t *in) {
+    const uint32_t player = 0x100440;
+    uint32_t handler = ng_r32(player);
+    int airborne = handler >= 0x36914 && handler <= 0x36c8a;
+    unsigned pressed = !!(in->p1 & NG_B);
+    if (!airborne) web_extra_used = 0;
+    if (web_double_jump && airborne && pressed && !web_previous_jump && !web_extra_used) {
+        ng_w16(player+0x2a, 0x9cd);
+        ng_w16(player+0x2e, 0xff3f);
+        ng_w8(player+0x90, 5);
+        web_extra_used = 1;
+    }
+    web_previous_jump = pressed;
+}
+
 /* The Neo Geo clock is independent of the display refresh rate. */
 static EM_BOOL web_frame(double now, void *data) {
     (void)data;
-    static double next;
     static int16_t samples[4096 * 2];
+    if (web_paused) { web_next = 0; return EM_TRUE; }
+    if (!web_ready) {
+        for (int i = 0; i < 45 && !web_ready; i++) {
+            ng_input_t empty = {0};
+            io_set_inputs(&empty);
+            run_frame();
+            audio_take_samples(samples, 4096);
+            /* BIOS_USER_REQUEST=2 is the handoff to the cartridge demo.
+             * Stop before its tank sequence, rather than waiting for the title. */
+            if ((ng_r8(0x10fdae) == 2 && ng_cpu.pc < 0x100000) ||
+                ng_frame_start > (int64_t)NG_CLOCKS_PER_FRAME * 1400) {
+                web_ready = 1;
+                web_start_ticks = web_level ? -1 : 0;
+            }
+        }
+        if (!web_ready) return EM_TRUE;
+        web_next = 0;
+    }
     const double period = 1000.0 / 59.185606;
-    if (!next || now - next > 4 * period) next = now;
-    if (now + 0.25 < next) return EM_TRUE;
-
+    if (!web_next || now - web_next > 4 * period) web_next = now;
+    if (now + 0.25 < web_next) return EM_TRUE;
     ng_input_t in = {0};
     platform_frame(s_fb, &in);
     do {
-        io_set_inputs(&in);
+        if (web_start_ticks == -1 && at_title()) web_start_ticks = 1;
+        if (web_start_ticks > 0) {
+            if (web_start_ticks < 12) in.coin1 = 1;
+            if (web_start_ticks >= 35 && web_start_ticks < 48) in.start1 = 1;
+            if (++web_start_ticks >= 55) web_start_ticks = 0;
+        }
+        ng_input_t frame_in = in;
+        extra_input(&frame_in);
+        dash(&frame_in, (unsigned)web_dash_pressed());
+        if (ng_r8(0x10fdae) == 2 && ng_cpu.pc < 0x100000) ng_w8(0x10fd8f, web_blood_mode ? 1 : 0);
+        double_jump(&frame_in);
+        io_set_inputs(&frame_in);
         run_frame();
         platform_audio(samples, audio_take_samples(samples, 4096));
-        next += period;
-    } while (next <= now);
+        web_next += period;
+    } while (web_next <= now);
     return EM_TRUE;
 }
+#ifdef WEB_REGRESSION_TEST
+#include "state-regression.h"
+#endif
 
 int ng_main(int argc, char **argv, const ng_game_t *game,
             const ng_func_entry_t *funcs, size_t nfuncs) {
@@ -253,6 +389,9 @@ int ng_main(int argc, char **argv, const ng_game_t *game,
     }
 
     ng_board_t board = {prom, game->prom_size, bios, 1};
+    web_prom = prom;
+    apply_blood_palette();
+    apply_level(web_level);
     bus_init(&board);
     io_reset(1);
     video_load(crom, game->crom_size, srom, srom_sz, sfix, lo);
@@ -278,17 +417,28 @@ int ng_main(int argc, char **argv, const ng_game_t *game,
         memset(&in, 0, sizeof(in));
         if (!platform_frame(frame == 0 ? NULL : s_fb, &in)) break;
         script_input(frame, &in);
+        if (ng_r8(0x10fdae) == 2 && ng_cpu.pc < 0x100000) ng_w8(0x10fd8f, web_blood_mode ? 1 : 0);
         io_set_inputs(&in);
         run_frame();
         platform_audio(samples, audio_take_samples(samples, 4096));
         for (int i = 0; i < o.nshots; i++)
             if (o.shots[i].frame == frame) {
+#ifdef WEB_REGRESSION_TEST
+                char dump_path[512]; snprintf(dump_path, sizeof dump_path, "%s.vram", o.shots[i].path);
+                FILE *dump = fopen(dump_path, "wb");
+                if (dump) { fwrite(lspc_vram, sizeof lspc_vram, 1, dump); fclose(dump); }
+                fprintf(stderr, "capture mode request=%u p1=%u scene=%u\n", ng_r8(0x10fdae),ng_r8(0x10fdb6),ng_r8(0x106ece));
+#endif
                 if (write_png(o.shots[i].path, s_fb, NG_SCREEN_W, NG_SCREEN_H))
                     fprintf(stderr, "error: cannot write %s\n", o.shots[i].path);
                 else
                     fprintf(stderr, "[neogeorecomp] frame %ld -> %s\n", frame, o.shots[i].path);
             }
     }
+#ifdef WEB_REGRESSION_TEST
+    if (!o.nshots) return regression();
+    return 0;
+#endif
     platform_frame(s_fb, &(ng_input_t){0});
 
     exec_report();

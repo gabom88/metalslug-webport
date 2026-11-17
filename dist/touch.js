@@ -3,10 +3,11 @@
 
 const MetalSlugTouch = (() => {
   const STORAGE_KEY = 'mslug.touch.v1';
-  const B = { UP: 0, DOWN: 1, LEFT: 2, RIGHT: 3, FIRE: 4, JUMP: 5, GRENADE: 6, START: 8, COIN: 9 };
+  const B = { UP: 0, DOWN: 1, LEFT: 2, RIGHT: 3, FIRE: 4, JUMP: 5, GRENADE: 6, START: 8, COIN: 9, DASH: 15 };
 
   // 24x24 line icons (stroke = currentColor).
   const ICONS = {
+    dash: '<path d="m5 6 6 6-6 6m8-12 6 6-6 6"/>' ,
     jump: '<path d="M12 3.5 6.5 10h3.5v5h4v-5h3.5z" fill="currentColor" stroke="none"/><path d="M5 20.5h14"/><path d="M8 17.5h8" opacity=".6"/>',
     start: '<path d="M9 7v10M15 7v10" stroke-width="2.6"/>',
     fire: '<path d="M4 8h15v5h-7l-2 6H6l2-6H4z"/><path d="M19 9h2v3h-2M12 13l2 3"/>',
@@ -26,6 +27,7 @@ const MetalSlugTouch = (() => {
     { id: 'jump', type: 'button', bind: B.JUMP, icon: 'jump', label: 'Salto' },
     { id: 'fire', type: 'button', bind: B.FIRE, icon: 'fire', label: 'Disparo' },
     { id: 'grenade', type: 'button', bind: B.GRENADE, icon: 'grenade', label: 'Granada' },
+    { id: 'dash', type: 'button', bind: B.DASH, icon: 'dash', label: 'Dash' },
     { id: 'coin', type: 'button', bind: B.COIN, icon: 'coin', label: 'Moneda', small: true },
     { id: 'start', type: 'button', bind: B.START, icon: 'start', label: 'Inicio', small: true },
   ];
@@ -37,6 +39,7 @@ const MetalSlugTouch = (() => {
       jump:   { x: 0.86, y: 0.83, size: 0.16, visible: true },
       fire:  { x: 0.77, y: 0.64, size: 0.16, visible: true },
       grenade:   { x: 0.86, y: 0.45, size: 0.16, visible: true },
+      dash: { x: 0.95, y: 0.64, size: 0.16, visible: true },
       coin: { x: 0.40, y: 0.09, size: 0.10, visible: true },
       start:  { x: 0.60, y: 0.09, size: 0.10, visible: true },
     },
@@ -47,11 +50,12 @@ const MetalSlugTouch = (() => {
       jump:   { x: 0.75, y: 0.81, size: 0.19, visible: true },
       fire:  { x: 0.60, y: 0.71, size: 0.19, visible: true },
       grenade:   { x: 0.75, y: 0.61, size: 0.19, visible: true },
+      dash: { x: 0.90, y: 0.71, size: 0.19, visible: true },
       coin: { x: 0.40, y: 0.93, size: 0.12, visible: true },
       start:  { x: 0.60, y: 0.93, size: 0.12, visible: true },
     },
   };
-  const DEFAULT_SETTINGS = { opacity: 0.7, mode: 'dpad', haptics: true };
+  const DEFAULT_SETTINGS = { opacity: 0.7, mode: 'dpad', haptics: true, dashEnabled: false };
 
   let layouts = {};
   let settings = {};
@@ -78,13 +82,17 @@ const MetalSlugTouch = (() => {
 
   function controls() {
     const layout = layouts[orientation()];
-    return CONTROL_DEFS.map((definition) => ({ ...definition, ...layout[definition.id] }));
+    return CONTROL_DEFS.map((definition) => {
+      const control = { ...definition, ...layout[definition.id] };
+      if (control.id === 'dash' && !settings.dashEnabled) control.visible = false;
+      return control;
+    });
   }
   function find(id) { return controls().find((c) => c.id === id) || null; }
 
   function load() {
     layouts = clone(DEFAULT_LAYOUTS);
-    settings = { ...DEFAULT_SETTINGS };
+    settings = { ...DEFAULT_SETTINGS, dashEnabled: settings.dashEnabled };
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (saved) {
@@ -403,7 +411,7 @@ const MetalSlugTouch = (() => {
   function reset() {
     const o = orientation();
     layouts[o] = clone(DEFAULT_LAYOUTS[o]);
-    settings = { ...DEFAULT_SETTINGS };
+    settings = { ...DEFAULT_SETTINGS, dashEnabled: settings.dashEnabled };
     applyMode();
     save();
     build();

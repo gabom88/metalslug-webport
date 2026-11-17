@@ -5,15 +5,16 @@ const actions = [
   ['Botón D', 'KeyV', 128], ['Inicio J1', 'Digit1', 256],
   ['Moneda J1', 'Digit5', 512], ['Inicio J2', 'Digit2', 1024],
   ['Moneda J2', 'Digit6', 2048], ['Selección J1', 'Digit3', 4096],
-  ['Servicio', 'Digit9', 8192], ['Prueba', 'F2', 16384],
+  ['Servicio', 'Digit9', 8192], ['Prueba', 'F2', 16384], ['Dash', 'ShiftLeft', 32768],
 ];
 const defaults = actions.map(([, code]) => code);
 const storageKey = 'mslug.keyboard.v1';
 const excluded = /^(Escape|Tab|Meta|Control|Alt|Shift|CapsLock|NumLock|ScrollLock|ContextMenu|Unidentified|F[0-9]+$)/;
-const usable = (code) => typeof code === 'string' && code.length > 0 && code.length <= 30 && (!excluded.test(code) || code === 'F2');
+const usable = (code) => typeof code === 'string' && code.length > 0 && code.length <= 30 && (!excluded.test(code) || code === 'F2' || code === 'ShiftLeft' || code === 'ShiftRight');
 function readBindings() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (Array.isArray(saved) && saved.length === defaults.length - 1) saved.push('ShiftLeft');
     if (Array.isArray(saved) && saved.length === defaults.length &&
         new Set(saved).size === saved.length && saved.every(usable)) return saved;
   } catch { /* Fall back to the arcade defaults. */ }
@@ -22,7 +23,7 @@ function readBindings() {
 function keyLabel(code) {
   const named = {
     ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
-    Space: 'Espacio', Enter: 'Intro', Backspace: 'Retroceso', Delete: 'Supr',
+    ShiftLeft: 'Shift izq.', ShiftRight: 'Shift der.', Space: 'Espacio', Enter: 'Intro', Backspace: 'Retroceso', Delete: 'Supr',
     Comma: ',', Period: '.', Minus: '-', Equal: '=', Slash: '/',
   };
   return named[code] || code.replace(/^Key|^Digit/, '').replace(/^Numpad/, 'Num ');

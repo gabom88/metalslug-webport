@@ -24,6 +24,7 @@ static SDL_Renderer *s_ren;
 static SDL_Texture *s_tex;
 /* Hide the eight edge pixels on each side of the arcade image. */
 enum { WEB_VISIBLE_WIDTH = 304, WEB_EDGE = (NG_SCREEN_W - WEB_VISIBLE_WIDTH) / 2 };
+static int web_stretch;
 static unsigned web_buttons;
 EMSCRIPTEN_KEEPALIVE void web_input(unsigned buttons) {
     web_buttons = buttons;
@@ -49,6 +50,15 @@ static void pad_removed(SDL_JoystickID id) {
         }
 }
 
+EMSCRIPTEN_KEEPALIVE void web_display_mode(int stretch) {
+    web_stretch = !!stretch;
+    if (s_ren) SDL_RenderSetLogicalSize(s_ren, web_stretch ? 0 : WEB_VISIBLE_WIDTH, web_stretch ? 0 : NG_SCREEN_H);
+}
+int web_dash_pressed(void) {
+    return !!(web_buttons & 0x8000) ||
+        (s_pad[0] && SDL_GameControllerGetButton(s_pad[0], SDL_CONTROLLER_BUTTON_RIGHTSHOULDER));
+}
+
 int window_open(const char *title, int scale) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "error: SDL_Init: %s\n", SDL_GetError());
@@ -57,7 +67,7 @@ int window_open(const char *title, int scale) {
     s_win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                              WEB_VISIBLE_WIDTH * scale, NG_SCREEN_H * scale, SDL_WINDOW_RESIZABLE);
     if (s_win) s_ren = SDL_CreateRenderer(s_win, -1, SDL_RENDERER_ACCELERATED);
-    if (s_ren) SDL_RenderSetLogicalSize(s_ren, WEB_VISIBLE_WIDTH, NG_SCREEN_H);
+    if (s_ren) SDL_RenderSetLogicalSize(s_ren, web_stretch ? 0 : WEB_VISIBLE_WIDTH, web_stretch ? 0 : NG_SCREEN_H);
     if (s_ren) s_tex = SDL_CreateTexture(s_ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                               NG_SCREEN_W, NG_SCREEN_H);
     if (!s_win || !s_ren || !s_tex) {
@@ -176,3 +186,5 @@ void window_close(void) {
     if (s_win) SDL_DestroyWindow(s_win);
     SDL_Quit();
 }
+
+void window_flush_audio(void) { if (s_audio) SDL_ClearQueuedAudio(s_audio); }

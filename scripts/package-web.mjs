@@ -53,6 +53,9 @@ if (process.argv[2] === '--verify') {
     return { file: names[i], size: bytes.length, sha256: digest(bytes) };
   }));
   for (const name of ['metalslug.js', 'metalslug.wasm']) await copyFile(join(bin, name), join(dist, name));
+  await writeFile(join(dist, 'state-build.json'), JSON.stringify({
+    build: digest(await readFile(join(dist, 'metalslug.wasm'))),
+  }) + '\n');
   for (const name of ['character.png', 'logo.png']) await copyFile(join(root, 'media', name), join(dist, name));
   await writeFile(manifestPath, JSON.stringify({ size: data.length, sha256: digest(data), parts }, null, 2) + '\n');
 }

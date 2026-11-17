@@ -17,9 +17,9 @@ endif()
 add_executable(metalslug
     web/neogeo_web.c web/window_web.c
     "${MSLUG_SOURCE}/src/main.c" "${MSLUG_SOURCE}/src/game.c"
-    "${ng}/src/exec.c" "${ng}/src/cpu.c" "${ng}/src/bus.c" "${ng}/src/lspc.c"
-    "${ng}/src/video.c" "${ng}/src/io.c" "${ng}/src/audio.c"
-    "${ng}/src/ym2610.cpp" "${ng}/src/platform.c" "${ng}/src/romload.c" "${ng}/src/musashi_glue.c"
+    web/state_exec.c "${ng}/src/cpu.c" web/state_bus.c web/state_lspc.c
+    web/state_video.c web/state_io.c web/state_audio.c
+    web/state_ym.cpp "${ng}/src/platform.c" "${ng}/src/romload.c" "${ng}/src/musashi_glue.c"
     "${ext}/musashi/m68kcpu.c" "${ext}/musashi/m68kdasm.c"
     "${ext}/musashi/softfloat/softfloat.c" "${MUSASHI_GEN}/m68kops.c"
     "${ext}/z80/z80.c"
@@ -40,7 +40,7 @@ if(MSLUG_GENERATED)
     target_compile_definitions(metalslug PRIVATE MSLUG_HAVE_RECOMP)
 endif()
 target_link_options(metalslug PRIVATE "-sUSE_SDL=2" "-sMODULARIZE=1" "-sEXPORT_NAME=createMetalSlug"
-    "-sEXPORTED_RUNTIME_METHODS=callMain" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576"
+    "-sEXPORTED_RUNTIME_METHODS=callMain,HEAPU8" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576"
     "-sENVIRONMENT=web" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0")
 set_target_properties(metalslug PROPERTIES SUFFIX ".js" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime")
 
@@ -58,8 +58,16 @@ foreach(rom IN LISTS rom_files)
     set_property(TARGET metalslug APPEND PROPERTY LINK_DEPENDS "${source}")
 endforeach()
 
+option(WEB_REGRESSION_TEST "Run the headless state regression" OFF)
 find_program(NODE_EXECUTABLE NAMES node REQUIRED)
-add_custom_target(web_bundle ALL
+if(NOT WEB_REGRESSION_TEST)
+    add_custom_target(web_bundle ALL
     COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/package-web.mjs" "$<TARGET_FILE_DIR:metalslug>"
     DEPENDS metalslug
     VERBATIM)
+endif()
+
+if(WEB_REGRESSION_TEST)
+    target_compile_definitions(metalslug PRIVATE WEB_REGRESSION_TEST)
+    target_link_options(metalslug PRIVATE "-sENVIRONMENT=web,node" "-sEXPORTED_RUNTIME_METHODS=callMain,HEAPU8,FS")
+endif()

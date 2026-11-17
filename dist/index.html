@@ -20,6 +20,8 @@
 <body>
   <main>
     <section id="launcher" aria-label="Metal Slug">
+      <a class="launcher-credit" href="https://x.com/bardock_dev" target="_blank" rel="noopener noreferrer">Metal Slug web port by Bardock</a>
+      <div class="launcher-hero">
       <header class="cover">
         <img class="cover-art" src="character.png" width="1920" height="2223" alt="Personaje de Metal Slug">
         <div class="cover-title">
@@ -32,9 +34,47 @@
         <button id="launcher-keys" type="button" aria-haspopup="dialog">Configurar teclado</button>
         <p id="status" role="status" aria-live="polite">Cargando juego…</p>
       </div>
+      </div>
+      <section class="play-settings" aria-label="Opciones de partida">
+        <div class="section-heading"><span class="eyebrow">PREPARA TU MISIÓN</span></div>
+        <div class="settings-fields"><div class="setting-field">
+        <label for="mission">Nivel inicial</label>
+        <select id="mission">
+          <option value="0">Pantalla de título</option>
+          <option value="1">Misión 1</option><option value="2">Misión 2</option>
+          <option value="3">Misión 3</option><option value="4">Misión 4</option>
+          <option value="5">Misión 5</option><option value="6">Misión final</option>
+        </select>
+        </div><div class="setting-field"><label for="display-mode" class="display-label">Imagen</label>
+        <select id="display-mode">
+          <option value="fit">Conservar proporción</option>
+          <option value="stretch">Estirar a toda la pantalla</option>
+        </select>
+        </div></div>
+        <details class="mods" open>
+          <summary>Mods</summary>
+          <div class="mod-item">
+            <label class="switch-row"><span>Doble salto</span><input id="double-jump" type="checkbox" role="switch" aria-describedby="double-jump-help"></label>
+            <p id="double-jump-help">Pulsa salto de nuevo en el aire para dar un segundo impulso.</p>
+          </div>
+          <div class="mod-item" hidden>
+            <label class="switch-row"><span>Dash en el suelo</span><input id="dash-mod" type="checkbox" role="switch"></label>
+            <p>Shift izquierdo, RB del mando o el botón táctil.</p>
+          </div>
+          <div class="mod-item"><label class="switch-row"><span>Disparo turbo</span><input id="turbo-mod" type="checkbox" role="switch" aria-describedby="turbo-help"></label><p id="turbo-help">Mantén pulsado disparo para disparar continuamente, con teclado o mando táctil.</p></div>
+          <div class="mod-item"><label class="switch-row"><span>Modo mirror</span><input id="mirror-mod" type="checkbox" role="switch" aria-describedby="mirror-help"></label><p id="mirror-help">Escenario en espejo y controles laterales invertidos. Textos e interfaz mantienen su orientación, también durante las misiones.</p></div>
+          <div class="mod-item blood-setting">
+            <label for="blood-mode">Color de sangre</label>
+            <select id="blood-mode" aria-describedby="blood-help">
+              <option value="0">Sin sangre</option><option value="1">Roja</option><option value="2">Púrpura</option>
+            </select>
+            <p id="blood-help">Personaliza los efectos durante la partida.</p>
+          </div>
+        </details>
+      </section>
       <section class="install-card" aria-labelledby="install-title">
         <div class="install-heading">
-          <h2 id="install-title">Instalar en tu teléfono</h2>
+          <div><h2 id="install-title">Instalar Metal Slug</h2><p class="install-intro">Sigue las siguientes instrucciones para instalar el juego.</p></div>
           <button id="install-app" type="button" hidden>Instalar app</button>
         </div>
         <div class="install-platforms">
@@ -56,19 +96,28 @@
       <dialog id="game-menu" aria-labelledby="game-menu-title">
         <div class="menu-panel">
           <div class="menu-heading">
-            <h2 id="game-menu-title">Opciones del juego</h2>
+            <div><span class="eyebrow">PAUSA TÁCTICA</span><h2 id="game-menu-title">Opciones del juego</h2></div>
             <button type="button" id="menu-close" aria-label="Cerrar opciones" autofocus>×</button>
           </div>
-          <div class="menu-actions">
-            <button type="button" data-bit="512">Moneda</button>
-            <button type="button" data-bit="256">Inicio</button>
+          <section class="menu-section"><h3>Pantalla</h3><label class="switch-row"><span>Imagen</span><select id="game-display-mode"><option value="fit">Conservar proporción</option><option value="stretch">Estirar pantalla</option></select></label></section>
+          <section class="save-panel menu-section" aria-labelledby="save-title">
+            <h3 id="save-title">Tu partida</h3>
+            <div class="menu-actions">
+              <button type="button" id="save-state">Save state</button>
+              <button type="button" id="load-state" disabled>Load state</button>
+            </div>
+            <label class="switch-row"><span>Autoguardar cada 10 segundos</span><input type="checkbox" id="autosave" role="switch"></label>
+            <p id="save-status" role="status" aria-live="polite"></p>
+          </section>
+          <section class="menu-section"><h3>Controles y sesión</h3><div class="menu-actions">
             <button type="button" id="touch-toggle" aria-controls="touch-layer" aria-pressed="false">Mando táctil</button>
             <button type="button" id="touch-config">Configurar mando</button>
             <button type="button" id="game-keys" aria-haspopup="dialog">Configurar teclado</button>
             <button type="button" id="fullscreen">Pantalla completa</button>
             <button type="button" id="back">Volver al inicio</button>
             <a class="credit-link" href="https://x.com/bardock_dev" target="_blank" rel="noopener noreferrer">Bardock · X</a>
-          </div>
+          </div></section>
+          <button type="button" id="menu-resume" class="primary">Continuar partida <span aria-hidden="true">▶</span></button>
         </div>
       </dialog>
       <p id="game-status" role="status"></p>
