@@ -40,12 +40,12 @@ Con **☰ → Configurar mando** puedes elegir cruceta o stick, arrastrar y redi
 
 ## Recompilar WebAssembly
 
-Requiere Node.js 24, CMake, Ninja, Emscripten con su port SDL2 y el árbol de fuentes nativo con neogeorecomp. La configuración reutiliza el directorio de ROM verificado por el instalador nativo y las tablas de opcodes de Musashi generadas en la compilación nativa. Si están en otras carpetas, usa `-DMSLUG_ROM_DIR=...` y `-DMUSASHI_GEN=...`.
+El código fuente nativo (recompilador y runtime `neogeorecomp`) está en `native/`; `native/neogeorecomp` es un submódulo, así que tras clonar ejecuta `git submodule update --init --recursive`. Requiere Node.js 24, CMake, Ninja y Emscripten con su port SDL2. Las ROM verificadas van en `native/roms/` y las tablas de opcodes de Musashi en `native/build/neogeorecomp_build/musashi_gen` (las genera la compilación nativa con `native/Setup.cmd`). Ninguna de las dos se sube al repositorio. Si están en otras carpetas, usa `-DMSLUG_ROM_DIR=...` y `-DMUSASHI_GEN=...`.
 
 Desde PowerShell, en esta carpeta:
 
 ```powershell
-cmake -S . -B build-web -G Ninja '-DCMAKE_TOOLCHAIN_FILE=D:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' '-DMSLUG_SOURCE=D:/Games/mslug/metalslug' '-DCMAKE_BUILD_TYPE=Release'
+cmake -S . -B build-web -G Ninja '-DCMAKE_TOOLCHAIN_FILE=D:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' '-DCMAKE_BUILD_TYPE=Release'
 cmake --build build-web --parallel 4
 ```
 
@@ -66,7 +66,7 @@ La integración de estados se encuentra en `web/state_*.c` y `web/state_ym.cpp`.
 ### Verificación de los estados
 
 ```powershell
-cmake -S . -B build-state-tests -G Ninja '-DCMAKE_TOOLCHAIN_FILE=D:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' '-DMSLUG_SOURCE=D:/Games/mslug/metalslug' '-DCMAKE_BUILD_TYPE=Release' '-DWEB_REGRESSION_TEST=ON'
+cmake -S . -B build-state-tests -G Ninja '-DCMAKE_TOOLCHAIN_FILE=D:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' '-DCMAKE_BUILD_TYPE=Release' '-DWEB_REGRESSION_TEST=ON'
 cmake --build build-state-tests --target metalslug --parallel 3
 node scripts/test-state.cjs
 ```

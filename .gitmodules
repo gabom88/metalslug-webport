@@ -1,0 +1,3 @@
+[submodule "native/neogeorecomp"]
+	path = native/neogeorecomp
+	url = https://github.com/sp00nznet/neogeorecomp.git

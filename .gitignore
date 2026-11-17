@@ -1,2 +1,9 @@
 /build-web/
 /dist/metalslug.data
+
+# Native source: ROMs, builds and setup output stay local
+/native/roms/
+/native/build/
+/native/build-*/
+/native/deps/
+/native/logs/
