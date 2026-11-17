@@ -209,10 +209,12 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 .mod-icon.blood { color: #ff6b5b; background: #e2551f1a; border-color: #e2551f33; }
 .mod-item .switch-row { font-weight: 700; font-size: .95rem; }
 .mod-item p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.45; }
-.blood-setting { grid-template-columns: auto 1fr; }
-.blood-setting > label { font-weight: 700; font-size: .95rem; align-self: center; }
-.blood-setting select { grid-column: 2; min-height: 40px; padding-block: .4rem; font-size: .85rem; }
-.blood-setting p { grid-column: 1 / -1; margin-top: .3rem; }
+.blood-setting, .overclock-setting { grid-template-columns: auto 1fr; }
+.blood-setting > label, .overclock-setting > label { font-weight: 700; font-size: .95rem; align-self: center; }
+.blood-setting select, .overclock-setting select { grid-column: 2; min-height: 40px; padding-block: .4rem; font-size: .85rem; }
+.blood-setting p, .overclock-setting p { grid-column: 1 / -1; margin-top: .3rem; }
+.overclock-setting { grid-column: 1 / -1; border-color: #f4b74055; background: linear-gradient(135deg, #f4b74014, #ffffff05 60%); }
+.mod-badge { margin-left: .35rem; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-text); background: var(--accent); padding: .12rem .45rem; border-radius: 99px; vertical-align: .15em; }
 
 /* Install card */
 .install-card {
@@ -360,7 +362,8 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 #save-status { margin: .6rem 0 0; font-size: .78rem; color: var(--accent-2); }
 #save-status:empty { display: none; }
 #game-menu .menu-section > .switch-row { font-size: .88rem; font-weight: 600; }
-#game-display-mode { min-height: 40px; padding-block: .4rem; font-size: .85rem; max-width: 65%; }
+#game-display-mode, #game-overclock { min-height: 40px; padding-block: .4rem; font-size: .85rem; max-width: 65%; }
+#game-menu .menu-section > .switch-row + .switch-row { margin-top: .5rem; }
 .menu-footer { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: 1rem; }
 .menu-footer #back { display: inline-flex; align-items: center; gap: .45rem; font-size: .88rem; }
 .credit-link { color: var(--muted); font-size: .8rem; text-decoration: none; padding: .4rem; }
@@ -381,7 +384,11 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
   .menu-logo { width: 2.8rem; }
   #menu-close { width: 2.1rem; height: 2.1rem; }
   #menu-resume { min-height: 2.6rem; margin: 0; font-size: .95rem; }
-  .menu-columns { grid-template-columns: 1fr 1.3fr; grid-template-areas: "save controls" "display controls"; gap: .55rem; }
+  .menu-columns { grid-template-columns: 1fr 1.3fr; grid-template-areas: "save controls" "display display"; gap: .55rem; }
+  #game-menu .menu-columns > :nth-child(3) { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.4rem; }
+  #game-menu .menu-columns > :nth-child(3) h3 { margin: 0; }
+  #game-menu .menu-columns > :nth-child(3) .switch-row { margin: 0; gap: .6rem; }
+  #game-display-mode, #game-overclock { max-width: none; }
   .menu-columns > .save-panel { grid-area: save; }
   .menu-columns > :nth-child(2) { grid-area: controls; }
   .menu-columns > :nth-child(3) { grid-area: display; }

@@ -162,6 +162,18 @@ static void script_input(long frame, ng_input_t *in) {
 
 /* ---- frame loop ---- */
 
+#ifdef WEB_REGRESSION_TEST
+/* Benchmarks: the 68000 PC at each VBlank. An idle game sits in its wait
+ * loop there; any other PC means the frame's work was late (slowdown). */
+static uint32_t s_bench_pc[65536];
+static uint32_t s_bench_n;
+EMSCRIPTEN_KEEPALIVE uint32_t *web_bench_pcs(void) { return s_bench_pc; }
+EMSCRIPTEN_KEEPALIVE uint32_t web_bench_count(void) { return s_bench_n; }
+#define BENCH_VBLANK() do { if (s_bench_n < 65536) s_bench_pc[s_bench_n++] = ng_cpu.pc; } while (0)
+#else
+#define BENCH_VBLANK() ((void)0)
+#endif
+
 static void run_until(int64_t t) {
     while (ng_cycles < t) {
         int64_t target = t, d = lspc_timer_deadline();
@@ -180,6 +192,7 @@ static void run_frame(void) {
             video_render_line(line - NG_FIRST_VISIBLE, s_fb + (line - NG_FIRST_VISIBLE) * NG_SCREEN_W);
         if (line == NG_VBLANK_LINE) {
             run_until(ls + NG_VBLANK_HPOS * 2);
+            BENCH_VBLANK();
             lspc_vblank();
         }
     }

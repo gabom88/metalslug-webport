@@ -12,6 +12,7 @@ const createMetalSlug = require(runtime);
     });
     game._web_options(mission, 1);
     game._web_mod_options(1, 2);
+    game._web_overclock_set(2);
     game.FS.writeFile('/input.txt', '900-910 coin\n1000-1010 start\n1300-2500 right+a\n');
     const code = game.callMain(['--headless', '--rom-path', '/roms', '--frames', '2500', '--input', '/input.txt']);
     if (code) throw new Error('Mission ' + mission + ' regression failed: ' + code);

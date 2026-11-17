@@ -184,6 +184,7 @@ play.addEventListener('click', async () => {
     engine._web_options(Number($('mission').value), $('double-jump').checked);
     engine._web_extra_options($('turbo-mod').checked, $('mirror-mod').checked);
     engine._web_mod_options(false, Number($('blood-mode').value));
+    setOverclock($('overclock').value);
     touch.setSetting('dashEnabled', false);
     const code = engine.callMain(['--rom-path', '/roms', '--scale', '1']);
     while (!engine._web_is_ready()) await new Promise(requestAnimationFrame);
@@ -211,6 +212,18 @@ setDisplayMode(savedDisplayMode);
 for (const id of ['display-mode', 'game-display-mode']) $(id).addEventListener('change', event => {
  savedDisplayMode = event.target.value; setDisplayMode(savedDisplayMode);
 });
+/* Overclock: ×2 by default; the player's choice is remembered. */
+function setOverclock(value) {
+ const factor = [1, 2, 3, 4].includes(Number(value)) ? Number(value) : 2;
+ $('overclock').value = $('game-overclock').value = String(factor);
+ engine?._web_overclock_set(factor);
+ try { localStorage.setItem('mslug.overclock', String(factor)); } catch {}
+}
+let savedOverclock = '2';
+try { savedOverclock = localStorage.getItem('mslug.overclock') || '2'; } catch {}
+setOverclock(savedOverclock);
+for (const id of ['overclock', 'game-overclock']) $(id).addEventListener('change', event => setOverclock(event.target.value));
+
 const installButton = $('install-app');
 let installPrompt;
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -251,6 +264,7 @@ try {
   });
   status.textContent = '';
   setDisplayMode(savedDisplayMode);
+  setOverclock($('overclock').value);
   await stateControls({
     engine, clearInput, doubleJump: $('double-jump'),
     onRestoreMods: () => {

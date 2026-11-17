@@ -10,11 +10,11 @@ Port local para navegador basado en [sp00nznet/metalslug](https://github.com/sp0
 
 La primera visita carga el motor y los datos desde tu PC. La página los guarda en caché para próximas visitas. El servidor escucha en la interfaz de loopback de Windows. Esta compilación contiene los datos de juego de tu instalación y está preparada para uso local.
 
-Usa las flechas para moverte, **Z** para disparar, **X** para saltar y **C** para lanzar granadas. El mando físico usa la asignación SDL2 del proyecto nativo.
+Usa **W A S D** para moverte, **B** para disparar, **N** para saltar y **M** para lanzar granadas. El mando físico usa la asignación SDL2 del proyecto nativo.
 
 ## Configurar teclado
 
-Abre **Configurar teclado** en el inicio o dentro de **☰** durante el juego. Selecciona una acción y pulsa la tecla nueva. Si ya estaba asignada, se intercambia con la anterior. Las asignaciones se guardan por navegador y por sitio. Usa **Restablecer teclas** para volver a la configuración original.
+Abre **Configurar teclado** en el inicio o dentro de **☰** durante el juego. Selecciona una acción y pulsa la tecla nueva. Si ya estaba asignada, se intercambia con la anterior. Las asignaciones se guardan por navegador y por sitio. Usa **Restablecer teclas** para volver a la configuración por defecto (W A S D + B N M). Si nunca cambiaste las teclas antiguas (flechas + Z X C), se actualizan solas a la nueva configuración.
 
 ## Instalar la PWA
 
@@ -56,7 +56,9 @@ La compilación genera `metalslug.data` dentro de `build-web/runtime/`. El objet
 
 En el inicio, **Nivel inicial** permite elegir la pantalla de título o una de las seis misiones. Al elegir una misión, el juego inserta una moneda e inicia esa partida. La presentación de Neo Geo se avanza hasta que la BIOS entrega el control al juego. La introducción de Metal Slug, incluida la escena del tanque, se reproduce completa. Si elegiste una misión, el inicio automático espera a que termine la introducción.
 
-En **Mods**, activa **Doble salto** antes de jugar. El jugador 1 puede pulsar salto de nuevo en el aire para dar un segundo impulso. Al tocar suelo recupera ese segundo salto.
+En **Mods**, **Overclock** viene activado a ×2. Acelera el procesador 68000 virtual sin cambiar el ritmo del vídeo, el sonido ni los temporizadores, como la opción de overclock de los emuladores arcade. El juego mantiene su velocidad normal, pero termina a tiempo cada imagen y desaparecen las ralentizaciones de las escenas cargadas. En una prueba automatizada de la Misión 1, las imágenes tardías bajaron del 21 % (original) a un 3 % con ×2; el resto son transiciones de escena. ×3 y ×4 apenas mejoran y gastan más CPU. Puedes cambiarlo en el inicio o en **☰ → Pantalla y rendimiento**, y el navegador lo recuerda. Elige **Desactivado** para el comportamiento original.
+
+Activa **Doble salto** antes de jugar. El jugador 1 puede pulsar salto de nuevo en el aire para dar un segundo impulso. Al tocar suelo recupera ese segundo salto.
 
 El menú **☰** pausa el juego y ofrece **Save state** y **Load state**. **Autoguardar cada 10 segundos** actualiza la misma ranura usada por Save state. Load state recupera el último guardado manual o automático. Las partidas se almacenan en IndexedDB, dentro del navegador y la dirección del juego. Para recuperar un guardado, abre el juego y usa **☰ → Load state**.
 
