@@ -169,7 +169,7 @@ $('fullscreen').addEventListener('click', async () => {
   }
 });
 document.addEventListener('fullscreenchange', () => {
-  $('fullscreen').textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+  $('fullscreen').querySelector('.tile-label').textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
 });
 
 play.addEventListener('click', async () => {
