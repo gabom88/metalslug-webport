@@ -1,6 +1,8 @@
 name: Publicar en GitHub Pages
 
 on:
+  push:
+    branches: [metal-slug-web]
   workflow_dispatch:
 
 concurrency:
