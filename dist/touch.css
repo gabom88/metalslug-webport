@@ -1,0 +1,92 @@
+/* ---------- touch controls ---------- */
+#touch-layer {
+  position: fixed;
+  inset: 0;
+  /* Clip controls: nothing inside may widen the page on iOS (see touch.js). */
+  overflow: hidden;
+  z-index: 10;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: auto;
+}
+#touch-layer.tc-hidden { display: none; }
+.tc {
+  position: absolute;
+  opacity: var(--tc-opacity, .7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #f4f4f7;
+  pointer-events: none;
+}
+/* Neutral round buttons with an icon of the action (no PlayStation glyphs). */
+.tc-button {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #4a4a52 0%, #2b2b31 60%, #1d1d22 100%);
+  border: 2px solid rgba(255, 255, 255, .22);
+  box-shadow: 0 3px 0 #0d0d10, 0 6px 14px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .15);
+}
+.tc-icon { width: 58%; height: 58%; display: block; }
+.tc-icon svg { width: 100%; height: 100%; display: block; }
+.tc-small .tc-icon { width: 46%; height: 46%; }
+.tc-pressed.tc-button {
+  transform: translateY(2px) scale(.96);
+  box-shadow: 0 1px 0 #0d0d10, 0 3px 8px rgba(0, 0, 0, .45), inset 0 2px 6px rgba(0, 0, 0, .5);
+  background: radial-gradient(circle at 50% 45%, #5b5b66 0%, #34343c 70%);
+}
+
+/* D-pad: GBoy-JS "model B" SVG, all 9 states built in; show the current one. */
+.ctrl-dpad svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ctrl-dpad .st { display: none; }
+.ctrl-dpad[data-st="rest"] .st-rest,
+.ctrl-dpad[data-st="up"] .st-up,
+.ctrl-dpad[data-st="down"] .st-down,
+.ctrl-dpad[data-st="left"] .st-left,
+.ctrl-dpad[data-st="right"] .st-right,
+.ctrl-dpad[data-st="ul"] .st-ul,
+.ctrl-dpad[data-st="ur"] .st-ur,
+.ctrl-dpad[data-st="dl"] .st-dl,
+.ctrl-dpad[data-st="dr"] .st-dr { display: inline; }
+.tc-dpad { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .45)); }
+
+.tc-stick {
+  border-radius: 50%;
+  background: rgba(20, 20, 26, .35);
+  border: 2px solid rgba(255, 255, 255, .4);
+}
+.tc-knob {
+  width: 46%;
+  height: 46%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+}
+.tc-pressed .tc-knob { background: rgba(255, 255, 255, .8); }
+.tc-stick.tc-pressed { transform: none; }
+
+#touch-layer.tc-editing { background: rgba(0, 0, 0, .25); }
+#touch-layer.tc-editing .tc { outline: 2px dashed rgba(255, 255, 255, .5); outline-offset: 3px; opacity: .9; }
+#touch-layer.tc-editing .tc-selected { outline: 3px solid var(--accent); }
+
+#touch-editor {
+  position: fixed;
+  z-index: 35;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, calc(100vw - 24px - var(--safe-l) - var(--safe-r)));
+  background: rgba(31, 31, 40, .94);
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+#touch-editor .hint { margin: 2px 0 6px; font-size: 12.5px; }
+.ed-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: center; margin: 4px 0; }
+.ed-row label { display: flex; align-items: center; gap: 6px; }
+.ed-row.disabled { opacity: .4; pointer-events: none; }
+#ed-name { font-weight: 700; min-width: 90px; }
+input[type=range] { width: 120px; accent-color: var(--accent); }
+.chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+

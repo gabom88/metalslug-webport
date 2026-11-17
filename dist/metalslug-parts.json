@@ -1,0 +1,16 @@
+{
+  "size": 28049408,
+  "sha256": "d8227ad9af26f2933540ae400e4c4c55b9def93d75f3b5f643df1c472384d9bf",
+  "parts": [
+    {
+      "file": "metalslug-part1.data",
+      "size": 14024704,
+      "sha256": "cc7e7ea80f63eb7a1f21524764deb6796d06b8c587cfb46359eafb4b1281c2ad"
+    },
+    {
+      "file": "metalslug-part2.data",
+      "size": 14024704,
+      "sha256": "03709b7bab374e836f19dbb546903adc3713500639af750e4aac14cddffc95d8"
+    }
+  ]
+}

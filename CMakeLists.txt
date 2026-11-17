@@ -1,85 +1,65 @@
 cmake_minimum_required(VERSION 3.21)
-project(metalslug VERSION 0.1.0 LANGUAGES C CXX)
-
+project(metalslug_web C CXX)
+if(NOT EMSCRIPTEN)
+    message(FATAL_ERROR "Use the Emscripten CMake toolchain")
+endif()
+set(MSLUG_SOURCE "" CACHE PATH "Path to the native Metal Slug checkout")
+set(MUSASHI_GEN "${MSLUG_SOURCE}/build/neogeorecomp_build/musashi_gen" CACHE PATH "Native build's Musashi opcode sources")
+set(MSLUG_GENERATED "" CACHE PATH "Optional: native build's ROM-derived C sources, for personal builds")
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 14)
 
-# The neogeorecomp toolkit: the submodule, or a checkout next to this repo.
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/neogeorecomp/CMakeLists.txt)
-    set(ng_default ${CMAKE_CURRENT_SOURCE_DIR}/neogeorecomp)
-else()
-    set(ng_default ${CMAKE_CURRENT_SOURCE_DIR}/../neogeorecomp)
+set(ng "${MSLUG_SOURCE}/neogeorecomp")
+set(ext "${ng}/ext")
+if(NOT EXISTS "${MUSASHI_GEN}/m68kops.c" OR NOT EXISTS "${ng}/src/ng_internal.h")
+    message(FATAL_ERROR "Set MSLUG_SOURCE to the Metal Slug folder after a successful native build, or specify MUSASHI_GEN")
 endif()
-set(NEOGEORECOMP_DIR ${ng_default} CACHE PATH "neogeorecomp checkout")
-add_subdirectory(${NEOGEORECOMP_DIR} neogeorecomp_build)
-
-# Your ROM files (MAME set "mslug" plus the "neogeo" system ROMs, unzipped).
-# Without it the player builds interpreter-only.
-set(MSLUG_ROM_DIR "" CACHE PATH "Directory with your Metal Slug and Neo Geo BIOS ROM files")
-# Optional: entry points a previous run found at runtime (--dump-misses).
-set(MSLUG_ENTRIES "${CMAKE_BINARY_DIR}/entries.txt" CACHE FILEPATH "Extra entry points for the recompiler")
-
-
-# Stage 1: the generator.
-add_executable(mslug_recomp src/recomp_main.c src/game.c)
-target_link_libraries(mslug_recomp PRIVATE m68krecomp_core)
-target_include_directories(mslug_recomp PRIVATE src)
-
-# Stage 2: the player, with the generated C when ROMs are available.
-set(GAME_SOURCES src/main.c)
-set(GEN_DIR ${CMAKE_BINARY_DIR}/generated)
-set(GEN_FILES 16)
-if(MSLUG_ROM_DIR)
-    set(GEN_SOURCES ${GEN_DIR}/recomp_table.c)
-    math(EXPR last "${GEN_FILES} - 1")
-    foreach(i RANGE ${last})
-        if(i LESS 10)
-            list(APPEND GEN_SOURCES ${GEN_DIR}/recomp_0${i}.c)
-        else()
-            list(APPEND GEN_SOURCES ${GEN_DIR}/recomp_${i}.c)
-        endif()
-    endforeach()
-    # The entry list starts empty; the `profile` target fills it from a
-    # scripted play session and the next build regenerates with it.
-    if(NOT EXISTS ${MSLUG_ENTRIES})
-        file(WRITE ${MSLUG_ENTRIES} "")
+add_executable(metalslug
+    web/neogeo_web.c web/window_web.c
+    "${MSLUG_SOURCE}/src/main.c" "${MSLUG_SOURCE}/src/game.c"
+    "${ng}/src/exec.c" "${ng}/src/cpu.c" "${ng}/src/bus.c" "${ng}/src/lspc.c"
+    "${ng}/src/video.c" "${ng}/src/io.c" "${ng}/src/audio.c"
+    "${ng}/src/ym2610.cpp" "${ng}/src/platform.c" "${ng}/src/romload.c" "${ng}/src/musashi_glue.c"
+    "${ext}/musashi/m68kcpu.c" "${ext}/musashi/m68kdasm.c"
+    "${ext}/musashi/softfloat/softfloat.c" "${MUSASHI_GEN}/m68kops.c"
+    "${ext}/z80/z80.c"
+    "${ext}/ymfm/src/ymfm_opn.cpp" "${ext}/ymfm/src/ymfm_adpcm.cpp"
+    "${ext}/ymfm/src/ymfm_ssg.cpp" "${ext}/ymfm/src/ymfm_misc.cpp"
+)
+target_include_directories(metalslug PRIVATE "${ng}/include" "${ng}/src" "${ext}/musashi"
+    "${MUSASHI_GEN}" "${ext}/z80" "${ext}/ymfm/src")
+target_compile_definitions(metalslug PRIVATE NG_HAVE_SDL MUSASHI_CNF="ng_musashi_conf.h")
+target_compile_options(metalslug PRIVATE "-sUSE_SDL=2")
+if(MSLUG_GENERATED)
+    file(GLOB generated CONFIGURE_DEPENDS "${MSLUG_GENERATED}/recomp_*.c")
+    if(NOT EXISTS "${MSLUG_GENERATED}/recomp_table.c" OR NOT EXISTS "${MSLUG_GENERATED}/recomp_common.h")
+        message(FATAL_ERROR "MSLUG_GENERATED must point to the native build's generated directory")
     endif()
-    file(MAKE_DIRECTORY ${GEN_DIR})
-    add_custom_command(
-        OUTPUT ${GEN_SOURCES} ${GEN_DIR}/recomp_common.h
-        COMMAND mslug_recomp --rom-path ${MSLUG_ROM_DIR} --out ${GEN_DIR} --files ${GEN_FILES}
-                --entries ${MSLUG_ENTRIES}
-        DEPENDS mslug_recomp ${MSLUG_ENTRIES}
-        COMMENT "Recompiling Metal Slug from ${MSLUG_ROM_DIR}")
-    list(APPEND GAME_SOURCES ${GEN_SOURCES})
-endif()
-
-add_executable(metalslug ${GAME_SOURCES} src/game.c)
-target_link_libraries(metalslug PRIVATE neogeorecomp)
-target_include_directories(metalslug PRIVATE src ${GEN_DIR})
-if(MSLUG_ROM_DIR)
-    # Optional: play the soak script and record the entry points that only
-    # show up at runtime (computed jumps into unrolled code), then rebuild.
-    add_custom_target(profile
-        COMMAND metalslug --headless --rom-path ${MSLUG_ROM_DIR} --frames 6000 --dump-misses ${MSLUG_ENTRIES}
-        COMMAND metalslug --headless --rom-path ${MSLUG_ROM_DIR} --frames 19000
-                --input ${CMAKE_CURRENT_SOURCE_DIR}/tests/play_long.txt --dump-misses ${MSLUG_ENTRIES}
-        DEPENDS metalslug
-        COMMENT "Profiling a scripted session for runtime-only entry points")
+    target_sources(metalslug PRIVATE ${generated})
+    target_include_directories(metalslug PRIVATE "${MSLUG_GENERATED}")
     target_compile_definitions(metalslug PRIVATE MSLUG_HAVE_RECOMP)
-    if(MSVC)
-        # Generated routines are large; /bigobj lifts the section limit.
-        set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS "/bigobj")
-    endif()
 endif()
-if(MSVC)
-    target_compile_definitions(metalslug PRIVATE _CRT_SECURE_NO_WARNINGS)
-    target_compile_definitions(mslug_recomp PRIVATE _CRT_SECURE_NO_WARNINGS)
-endif()
+target_link_options(metalslug PRIVATE "-sUSE_SDL=2" "-sMODULARIZE=1" "-sEXPORT_NAME=createMetalSlug"
+    "-sEXPORTED_RUNTIME_METHODS=callMain" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576"
+    "-sENVIRONMENT=web" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0")
+set_target_properties(metalslug PROPERTIES SUFFIX ".js" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime")
 
-# Ship the SDL2 DLL (when the window is built) next to the executable.
-if(WIN32 AND TARGET SDL2::SDL2)
-    add_custom_command(TARGET metalslug POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:metalslug> $<TARGET_FILE_DIR:metalslug>
-        COMMAND_EXPAND_LISTS)
-endif()
+# Only the verified set used by the game is bundled into metalslug.data.
+set(MSLUG_ROM_DIR "${MSLUG_SOURCE}/roms" CACHE PATH "Verified Metal Slug and Neo Geo ROM directory")
+set(rom_files
+    201-p1.p1 201-s1.s1 201-m1.m1 201-c1.c1 201-c2.c2 201-c3.c3 201-c4.c4
+    201-v1.v1 201-v2.v2 sp-s2.sp1 sfix.sfix sm1.sm1 000-lo.lo)
+foreach(rom IN LISTS rom_files)
+    set(source "${MSLUG_ROM_DIR}/${rom}")
+    if(NOT EXISTS "${source}")
+        message(FATAL_ERROR "Missing ${source}. Use the ROM directory verified by native setup.")
+    endif()
+    target_link_options(metalslug PRIVATE "SHELL:--preload-file \"${source}@/roms/${rom}\"")
+    set_property(TARGET metalslug APPEND PROPERTY LINK_DEPENDS "${source}")
+endforeach()
+
+find_program(NODE_EXECUTABLE NAMES node REQUIRED)
+add_custom_target(web_bundle ALL
+    COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/package-web.mjs" "$<TARGET_FILE_DIR:metalslug>"
+    DEPENDS metalslug
+    VERBATIM)

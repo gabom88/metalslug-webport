@@ -1,0 +1,119 @@
+:root { --accent: #f2c365; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); color-scheme: dark; font-family: "Barlow", system-ui, sans-serif; background: #171814; color: #f5eddb; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+main { width: min(100% - 2rem, 56rem); margin: 0 auto; padding: clamp(1rem, 5vh, 3.5rem) 0; }
+input::file-selector-button, button { font: inherit; font-weight: 650; color: inherit; padding: .55rem .75rem; border: 1px solid #686657; background: #292a22; border-radius: .25rem; cursor: pointer; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid #f2c365; outline-offset: 3px; }
+.primary { color: #20170d; background: #f2c365; border-color: #f2c365; min-width: 7rem; }
+#status { color: #e9bd66; }
+#status:empty { display: none; }
+.screen { background: #080907; display: grid; place-items: center; }
+.game-display { position: relative; width: min(100%, 105dvh); }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 19 / 14; image-rendering: pixelated; background: black; outline: none; }
+#arcade { margin-top: .9rem; }
+#arcade:fullscreen { background: #171814; display: flex; flex-direction: column; justify-content: center; padding: .5rem; }
+#arcade:fullscreen .game-display { width: min(100%, 135.714dvh); }
+
+#game-status:empty { display: none; }
+#ed-selected { border: 0; padding: 0; }
+#ed-selected:disabled { opacity: .4; }
+#touch-editor { max-height: 85dvh; overflow-y: auto; }
+@media (orientation: portrait) {
+  body.touch-playing #touch-editor { top: 24%; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  body.touch-playing #touch-editor { top: 38%; }
+}
+#menu-btn {
+  position: fixed;
+  z-index: 30;
+  top: calc(6px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid #ffffff40;
+  border-radius: 0 0 12px 12px;
+  background: #171814cf;
+  font-size: 20px;
+}
+#touch-layer.tc-editing + #menu-btn { visibility: hidden; }
+#game-menu, #keyboard-dialog {
+  width: min(23rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid #686657;
+  border-radius: .8rem;
+  color: inherit;
+  background: #22231c;
+}
+#game-menu::backdrop, #keyboard-dialog::backdrop { background: #080907ad; }
+.menu-panel { padding: .9rem; }
+.menu-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .8rem; }
+.menu-heading h2 { font-size: 1.15rem; margin: 0; }
+#menu-close, #keyboard-close { font-size: 1.35rem; line-height: 1; }
+.menu-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+.menu-actions button[aria-pressed="true"] { border-color: var(--accent); }
+body:not(.playing) {
+  background: radial-gradient(ellipse at 50% 3%, #414030 0%, #1e1f17 45%, #171814 78%);
+}
+body:not(.playing) main { padding-top: clamp(.75rem, 3vh, 2rem); }
+.launch-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .65rem; margin: 1rem 0; }
+.launch-actions button { min-height: 44px; }
+.launch-actions .primary { min-width: 9rem; }
+.launch-actions .primary span { font-size: .85em; margin-right: .25em; }
+.launch-actions #status { flex-basis: 100%; margin: 0; text-align: center; }
+.install-card { border: 1px solid #514e40; background: #202119; border-radius: .55rem; padding: clamp(.8rem, 2.5vw, 1.2rem); }
+.install-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; justify-content: space-between; }
+.install-heading h2 { font-size: 1.15rem; margin: 0; }
+.install-platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1.25rem; margin-top: .8rem; }
+.install-platforms > div { border-left: 2px solid #ae8c53; padding: .15rem .65rem; }
+.install-platforms h3 { margin: 0 0 .3rem; color: #e7c787; font-size: .95rem; }
+.install-platforms p, .install-note, #keyboard-dialog p { margin: 0; color: #dbd5c2; font-size: .88rem; line-height: 1.45; }
+.install-card .install-note { margin-top: .9rem; font-size: .8rem; color: #c0baa6; }
+#keyboard-dialog { width: min(37rem, calc(100% - 1.5rem)); overflow-y: auto; }
+.keyboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; margin-top: .8rem; }
+.keyboard-grid button { display: flex; justify-content: space-between; align-items: center; gap: .25rem; text-align: left; font-size: .88rem; min-height: 38px; }
+.keyboard-grid button[aria-pressed="true"] { border-color: var(--accent); background: #443a24; }
+.keyboard-grid kbd { color: #f8e6ba; background: #191914; border: 1px solid #595542; border-radius: .25rem; padding: .1em .35em; overflow-wrap: anywhere; }
+#keyboard-dialog #keyboard-status { min-height: 1.4em; margin: .6rem 0; color: var(--accent); }
+@media (max-width: 460px) {
+  .install-platforms { grid-template-columns: 1fr; }
+  .keyboard-grid button { padding-inline: .4rem; }
+}
+.cover { display: grid; justify-items: center; text-align: center; }
+.cover-art { display: block; width: auto; height: clamp(10rem, 34dvh, 19rem); max-width: 90%; object-fit: contain; }
+.cover h1 { margin: .2rem auto 0; }
+.cover h1 img { display: block; width: min(56vw, 15rem); height: auto; image-rendering: pixelated; }
+.launch-actions { gap: .5rem; }
+.launch-actions .primary { min-width: 0; }
+@media (pointer: coarse), (max-width: 640px), (max-height: 540px) {
+  body.playing { overflow: hidden; background: #080907; }
+  body.playing main { width: 100%; padding: 0; }
+  body.playing #arcade { position: relative; margin: 0; padding: 0; }
+  body.playing .screen {
+    border: 0;
+    height: 100dvh;
+    padding-inline: var(--safe-l) var(--safe-r);
+    overflow: hidden;
+  }
+  body.playing #arcade .game-display { width: min(100%, 135.714dvh); }
+  body.playing #game-status { position: absolute; z-index: 12; bottom: 1rem; margin-inline: 1rem; }
+}
+@media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
+  body.playing .screen { align-content: start; padding-top: env(safe-area-inset-top, 0px); }
+}
+.credit-link { align-self: center; justify-self: center; color: var(--accent); padding: .4rem; }
+
+#title-credit-link {
+  position: absolute;
+  z-index: 11;
+  /* FIX tiles x=56..263, y=192..207, with eight pixels cropped from each side. */
+  inset: calc(192 / 224 * 100%) auto auto calc(48 / 304 * 100%);
+  width: calc(208 / 304 * 100%);
+  height: calc(16 / 224 * 100%);
+}
+#title-credit-link:focus-visible { outline: 2px solid var(--accent); }

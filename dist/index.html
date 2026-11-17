@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171814">
+  <title>Metal Slug Web</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" sizes="180x180" href="pwa-180.png">
+  <link rel="icon" type="image/png" href="pwa-192.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="touch.css">
+  <script defer src="dpad-gemuboy.js"></script>
+  <script defer src="touch.js"></script>
+  <script defer src="metalslug.js"></script>
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <main>
+    <section id="launcher" aria-label="Metal Slug">
+      <header class="cover">
+        <img class="cover-art" src="character.png" width="1920" height="2223" alt="Personaje de Metal Slug">
+        <div class="cover-title">
+          <h1><img src="logo.png" width="278" height="160" alt="Metal Slug"></h1>
+
+        </div>
+      </header>
+      <div id="setup" class="launch-actions">
+        <button id="play" class="primary" type="button" disabled><span aria-hidden="true">▶</span> Jugar</button>
+        <button id="launcher-keys" type="button" aria-haspopup="dialog">Configurar teclado</button>
+        <p id="status" role="status" aria-live="polite">Cargando juego…</p>
+      </div>
+      <section class="install-card" aria-labelledby="install-title">
+        <div class="install-heading">
+          <h2 id="install-title">Instalar en tu teléfono</h2>
+          <button id="install-app" type="button" hidden>Instalar app</button>
+        </div>
+        <div class="install-platforms">
+          <div><h3>iPhone · Safari</h3><p>Pulsa <strong>Compartir</strong> → <strong>Añadir a pantalla de inicio</strong>. Activa <strong>Abrir como app web</strong> si aparece y pulsa <strong>Añadir</strong>.</p></div>
+          <div><h3>Android · Chrome</h3><p>Abre <strong>⋮</strong> → <strong>Añadir a pantalla de inicio</strong> → <strong>Instalar</strong>.</p></div>
+        </div>
+        <p class="install-note">Abre la dirección HTTPS del juego desde el teléfono. Después de la primera carga completa, puedes jugar sin conexión.</p>
+      </section>
+    </section>
+    <section id="arcade" aria-label="Juego" hidden>
+      <div class="screen">
+        <div class="game-display">
+          <canvas id="canvas" tabindex="0" aria-label="Pantalla de Metal Slug"></canvas>
+          <a id="title-credit-link" aria-label="Abrir el perfil de Bardock en X" href="https://x.com/bardock_dev" target="_blank" rel="noopener noreferrer" hidden></a>
+        </div>
+      </div>
+      <div id="touch-layer" class="tc-hidden" aria-label="Mando táctil"></div>
+      <button type="button" id="menu-btn" aria-label="Opciones del juego" aria-haspopup="dialog" aria-controls="game-menu" aria-expanded="false">☰</button>
+      <dialog id="game-menu" aria-labelledby="game-menu-title">
+        <div class="menu-panel">
+          <div class="menu-heading">
+            <h2 id="game-menu-title">Opciones del juego</h2>
+            <button type="button" id="menu-close" aria-label="Cerrar opciones" autofocus>×</button>
+          </div>
+          <div class="menu-actions">
+            <button type="button" data-bit="512">Moneda</button>
+            <button type="button" data-bit="256">Inicio</button>
+            <button type="button" id="touch-toggle" aria-controls="touch-layer" aria-pressed="false">Mando táctil</button>
+            <button type="button" id="touch-config">Configurar mando</button>
+            <button type="button" id="game-keys" aria-haspopup="dialog">Configurar teclado</button>
+            <button type="button" id="fullscreen">Pantalla completa</button>
+            <button type="button" id="back">Volver al inicio</button>
+            <a class="credit-link" href="https://x.com/bardock_dev" target="_blank" rel="noopener noreferrer">Bardock · X</a>
+          </div>
+        </div>
+      </dialog>
+      <p id="game-status" role="status"></p>
+      <section id="touch-editor" aria-label="Configurar mando táctil" hidden>
+        <p class="hint">Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.</p>
+        <fieldset class="ed-row" id="ed-selected" disabled>
+          <span id="ed-name">—</span>
+          <label>Tamaño <input type="range" id="ed-size" min="0.06" max="0.6" step="0.01"></label>
+          <button type="button" id="ed-hide">Ocultar</button>
+        </fieldset>
+        <div class="ed-row">
+          <label>Opacidad <input type="range" id="ed-opacity" min="0.15" max="1" step="0.05"></label>
+          <label>Dirección
+            <select id="ed-mode">
+              <option value="dpad">Cruceta</option>
+              <option value="stick">Stick</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="ed-haptics"> Vibración</label>
+        </div>
+        <div class="ed-row">
+          <button type="button" id="ed-showall">Mostrar todos</button>
+          <button type="button" id="ed-reset">Restablecer</button>
+          <button type="button" class="primary" id="ed-done">Listo</button>
+        </div>
+      </section>
+    </section>
+    <dialog id="keyboard-dialog" aria-labelledby="keyboard-title">
+      <div class="menu-panel">
+        <div class="menu-heading"><h2 id="keyboard-title">Configurar teclado</h2><button id="keyboard-close" type="button" aria-label="Cerrar teclado" autofocus>×</button></div>
+        <p>Selecciona una acción y pulsa la nueva tecla. Si ya está en uso, se intercambian.</p>
+        <div id="keyboard-grid" class="keyboard-grid"></div>
+        <p id="keyboard-status" role="status" aria-live="polite"></p>
+        <button id="keyboard-reset" type="button">Restablecer teclas</button>
+      </div>
+    </dialog>
+  </main>
+</body>
+</html>

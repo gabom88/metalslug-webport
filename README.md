@@ -1,123 +1,54 @@
-# Metal Slug: static recompilation
+# Metal Slug Web
 
-**Metal Slug (Nazca/SNK, 1996) running as a native PC program: its 68000 code is recompiled to C and runs on the [neogeorecomp](https://github.com/sp00nznet/neogeorecomp) board model.**
+Port local para navegador basado en [sp00nznet/metalslug](https://github.com/sp00nznet/metalslug/tree/4aa33572f14fb7a292ac775490774125a7db3f14). Usa WebAssembly, SDL2 y el intérprete de 68000. El paquete local incluye los datos de Metal Slug y la BIOS de Neo Geo en dos archivos de unos 14 MB cada uno. El navegador verifica sus hashes y reconstruye `metalslug.data` en memoria.
 
-This is the reference game for neogeorecomp. The toolkit does all the work; this repo describes the ROM set and builds the game.
+## Jugar
 
-> **No game data here.** You need your own Metal Slug and Neo Geo system ROM dumps (MAME sets `mslug` and `neogeo`). The recompiled C is generated from your dump on your machine, into `build/`. It is never committed or distributed, and neither is anything else derived from the ROMs.
+1. Abre **Jugar.cmd** y deja abierta la ventana del servidor local. Requiere Node.js.
+2. Abre **http://127.0.0.1:8090/** en tu navegador.
+3. Pulsa **Jugar**. Usa **5** para insertar moneda y **1** para empezar, o abre **☰** y usa **Moneda** e **Inicio**.
 
-## Status
+La primera visita carga el motor y los datos desde tu PC. La página los guarda en caché para próximas visitas. El servidor escucha en la interfaz de loopback de Windows. Esta compilación contiene los datos de juego de tu instalación y está preparada para uso local.
 
-**v0.1.0, alpha.** Metal Slug boots, runs attract mode, takes a coin and plays Mission 1 on recompiled code. Sound plays through the YM2610 synthesis neogeorecomp gained in [#3](https://github.com/sp00nznet/neogeorecomp/pull/3).
+Usa las flechas para moverte, **Z** para disparar, **X** para saltar y **C** para lanzar granadas. El mando físico usa la asignación SDL2 del proyecto nativo.
 
-- Boot through the real MVS system ROM → eyecatcher → title → How to Play → Mission 1, with continues.
-- A 5-minute scripted soak runs **100% natively** (0 interpreted instructions) after the profile pass, and `--verify` checks **14.06M** recompiled blocks against the Musashi interpreter with **0 mismatches**.
-- Frame output is identical to the interpreter's, byte for byte, and identical between Windows and Linux builds.
-- Not yet: later missions checked by script, and a settings menu.
+## Configurar teclado
 
-## Screenshots
+Abre **Configurar teclado** en el inicio o dentro de **☰** durante el juego. Selecciona una acción y pulsa la tecla nueva. Si ya estaba asignada, se intercambia con la anterior. Las asignaciones se guardan por navegador y por sitio. Usa **Restablecer teclas** para volver a la configuración original.
 
-All real output from the recompiled build (`--headless --screenshot`):
+## Instalar la PWA
 
-| | |
-|---|---|
-| ![MVS eyecatcher](docs/screenshots/bios.png) | ![Title](docs/screenshots/title.png) |
-| ![How to play](docs/screenshots/howto.png) | ![Mission 1](docs/screenshots/mission.png) |
-| ![Continue](docs/screenshots/continue.png) | ![SV-001 in the river village](docs/screenshots/tank.png) |
+Cuando tengas autorización para distribuir los datos del juego:
 
-## Getting started
+1. Sube el proyecto a tu repositorio de GitHub, incluidos `dist/`, `scripts/` y `.github/workflows/pages.yml`.
+2. En **Settings → Pages → Build and deployment → Source**, selecciona **GitHub Actions**.
+3. En **Actions → Publicar en GitHub Pages**, pulsa **Run workflow**. El flujo es manual y publica solo `dist/`, después de verificar los datos y que cada archivo pese menos de 20 MB.
+4. Abre en el teléfono la URL HTTPS que devuelve Pages. La ruta habitual para un repositorio de proyecto es `https://USUARIO.github.io/REPOSITORIO/`.
 
-### Installer (Windows, Linux, macOS)
+La dirección local de Windows solo sirve para probar en esa PC. Para ensayar la ruta de un repositorio sin publicar, ejecuta `node serve.mjs 8091 /MetalSlug-webport/` y abre `http://127.0.0.1:8091/MetalSlug-webport/`.
 
-1. Download **Metal-Slug-Installer** for your system from the latest [release](https://github.com/sp00nznet/metalslug/releases) or, between releases, from the newest run of the [installer workflow](https://github.com/sp00nznet/metalslug/actions/workflows/installer.yml) (signed in to GitHub). On Linux, unpack the `.tar.gz`; on macOS, unzip the app.
-2. Open it, choose the folder holding your **`mslug.zip`** and **`neogeo.zip`** (MAME sets), and press **Build**. It downloads this repo and runs the same setup as below, installing what's missing, with a progress bar; the full output is under **Show details**.
-3. Press **Play**.
+- **iPhone (Safari):** abre **Compartir → Añadir a pantalla de inicio**. Activa **Abrir como app web** si aparece y pulsa **Añadir**.
+- **Android (Chrome):** abre **⋮ → Añadir a pantalla de inicio → Instalar**. Cuando Chrome lo permite, también aparece **Instalar app** en el launcher.
 
-The installer holds no game data and builds from your ROMs on your machine ([recomp-launcher](https://github.com/sp00nznet/recomp-launcher)). It isn't signed: on Windows, SmartScreen asks (**More info**, **Run anyway**); on a Mac, open it once, then **Open Anyway** in System Settings, Privacy & Security.
+Abre el juego en línea la primera vez para completar la caché. El service worker conserva la interfaz, WebAssembly y los datos del juego para abrirlo sin conexión.
 
-### Quick start (Windows)
+## Mando táctil
 
-1. Download this repo: **Code → Download ZIP**, then unzip it. A `git clone` works too.
-2. Put your **`mslug.zip`** and **`neogeo.zip`** (MAME sets) in the unzipped folder, or in `Downloads`.
-3. Double-click **`Setup.cmd`**.
+El mando usa la cruceta 3D y el stick de [ReChan](https://github.com/gabom88/ReChan/tree/main). Los botones redondos corresponden a disparar, saltar, lanzar granadas, insertar moneda e iniciar. En pantallas táctiles se muestra al entrar al juego. También se puede activar desde **☰ → Mando táctil**.
 
-   It checks for Git, CMake, the Visual Studio C++ build tools and SDL2, and asks before installing anything that's missing (it says what and how big). It finds and checksums your ROMs, recompiles and builds the game (a few minutes), and leaves a **Metal Slug** launcher in the folder. If something fails, it stops with one sentence on what to do and keeps the details in `setup.log`. Running it again picks up where it stopped.
-4. Double-click **Metal Slug**.
+Con **☰ → Configurar mando** puedes elegir cruceta o stick, arrastrar y redimensionar controles, ocultar botones y ajustar la opacidad o vibración. El navegador recuerda el diseño en vertical y en horizontal por separado.
 
-**On Linux or macOS**, run `./setup.sh` instead, optionally with `--rom-zip PATH --bios-zip PATH`. It does the same steps and offers to install anything missing with `apt`, or with Homebrew on a Mac (which also needs Xcode's command line tools: `xcode-select --install`). When it finishes, run `./metalslug.sh`. macOS builds in CI, but no game has been played on a Mac yet; reports are welcome.
+## Recompilar WebAssembly
 
-Keys: **arrows** move, **Z** shoot, **X** jump, **C** grenade, **5** insert coin, **1** start, **Esc** quit.
+Requiere Node.js 24, CMake, Ninja, Emscripten con su port SDL2 y el árbol de fuentes nativo con neogeorecomp. La configuración reutiliza el directorio de ROM verificado por el instalador nativo y las tablas de opcodes de Musashi generadas en la compilación nativa. Si están en otras carpetas, usa `-DMSLUG_ROM_DIR=...` y `-DMUSASHI_GEN=...`.
 
-**Gamepad**: D-pad or stick move, **A** shoot, **B** jump, **X** grenade, **Back** coin, **Start** start. Two pads play as players 1 and 2; plug them in any time. The toolkit's [docs/running.md](https://github.com/sp00nznet/neogeorecomp/blob/master/docs/running.md) has the full layout.
+Desde PowerShell, en esta carpeta:
 
-### Step by step
-
-These are the commands `Setup.cmd` runs.
-
-**Prerequisites:** Git; CMake 3.21+; a C and C++ compiler (Visual Studio 2022 with *Desktop development with C++* on Windows, or gcc and g++ on Linux); SDL2 for the window (optional, since headless builds need nothing). On Linux: `sudo apt install git cmake gcc g++ libsdl2-dev`. On macOS: `xcode-select --install`, then `brew install cmake sdl2`.
-
-1. **Clone with the toolkit submodule:**
-   ```
-   git clone --recurse-submodules https://github.com/sp00nznet/metalslug
-   cd metalslug
-   ```
-2. **Unzip your ROMs into `roms/`.** From `mslug.zip`: `201-p1.p1 201-s1.s1 201-m1.m1 201-c1.c1 201-c2.c2 201-c3.c3 201-c4.c4 201-v1.v1 201-v2.v2`. From `neogeo.zip`: `sp-s2.sp1 sfix.sfix sm1.sm1 000-lo.lo`. [docs/game-notes.md](docs/game-notes.md) lists the CRC32s.
-3. **Configure.** On Windows, point CMake at SDL2: vcpkg's toolchain file, or `-DSDL2_DIR=<SDL2-devel-VC>/cmake`.
-   ```
-   cmake -S . -B build -DMSLUG_ROM_DIR=roms
-   ```
-4. **Build.** The generator recompiles your ROMs into `build/generated` first:
-   ```
-   cmake --build build --config Release
-   ```
-   Expected in the output:
-   ```
-   [m68krecomp] pointer scan: 10003 seeds
-   [m68krecomp] mslug: 445072 instructions emitted across routines
-   [m68krecomp] 15006 routines, 33423 dispatch entries -> .../build/generated
-   ```
-5. **Profile (optional).** This plays two scripted sessions headless to find code only reached at runtime, then rebuilds with it:
-   ```
-   cmake --build build --config Release --target profile
-   cmake --build build --config Release
-   ```
-6. **Play:**
-   ```
-   build/Release/metalslug --rom-path roms          (Linux: build/metalslug)
-   ```
-
-Trip-ups:
-- *`error: cannot open roms/201-p1.p1`*: the ROMs are not in `roms/`, or you are running from a different folder. Pass `--rom-path`.
-- *"Submodules missing"*: you cloned without `--recurse-submodules`. Run `git submodule update --init --recursive`.
-- *`python` or PATH trouble*: none of this needs Python. If a freshly installed tool isn't found, open a new terminal so it sees the updated PATH.
-- *No window, and "built without SDL2; run with --headless"*: CMake didn't find SDL2 (see step 3).
-
-## Usage
-
-```
-metalslug --rom-path roms                                  # play
-metalslug --headless --frames 1900 --input tests/coin_start.txt --record run.mp4
-metalslug --headless --verify --frames 1801 --input tests/coin_start.txt
-metalslug --headless --interp --frames 1801 --screenshot 1800:interp.png
-metalslug --headless --frames 1900 --input tests/coin_start.txt --wav run.wav   # audio to a file
+```powershell
+cmake -S . -B build-web -G Ninja '-DCMAKE_TOOLCHAIN_FILE=D:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' '-DMSLUG_SOURCE=D:/Games/mslug/metalslug' '-DCMAKE_BUILD_TYPE=Release'
+cmake --build build-web --parallel 4
 ```
 
-The toolkit's [docs/running.md](https://github.com/sp00nznet/neogeorecomp/blob/master/docs/running.md) covers every option and the input-script format. `tests/coin_start.txt` reaches Mission 1, and `tests/play_long.txt` is the 5-minute soak.
+Si usas `MSLUG_GENERATED`, genera las rutinas a partir de una copia de la ROM con el crédito aplicado por `scripts/title-credit.mjs`. El código recompilado a partir del juego original puede dibujar el texto antiguo. La compilación estándar usa el intérprete y aplica el crédito a la copia del programa contenida en el paquete. Si cambias la compilación o los archivos de `dist/`, incrementa el identificador `CACHE` en `dist/sw.js` para actualizar la copia del navegador.
 
-## Building from source
-
-See *Step by step* above. `MSLUG_ROM_DIR` is the only game-specific option. Without it, the build is interpreter-only, which is useful for working on the toolkit without regenerating.
-
-## Documentation
-
-- [docs/game-notes.md](docs/game-notes.md): the ROM set and what the game needed from the toolkit
-- [neogeorecomp](https://github.com/sp00nznet/neogeorecomp): the architecture and recompiler docs
-- [CHANGELOG.md](CHANGELOG.md) · [ROADMAP.md](ROADMAP.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Contributors
-
-No outside contributions yet. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to send one.
-
-## License
-
-The code in this repo is MIT ([LICENSE](LICENSE)). *Metal Slug* is © SNK; this project contains none of its code or data and needs your own dump to do anything.
+La compilación genera `metalslug.data` dentro de `build-web/runtime/`. El objetivo `web_bundle` prepara las dos partes y su manifiesto en `dist/`. Ejecuta `node scripts/package-web.mjs --verify` para comprobar la reconstrucción antes de publicar. Edita las imágenes de entrada en `media/`; la compilación copia `character.png` y `logo.png` a `dist/`.
