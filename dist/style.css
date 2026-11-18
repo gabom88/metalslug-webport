@@ -191,6 +191,9 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 .setting-field label { display: flex; align-items: center; gap: .4rem; margin-bottom: .45rem; font-size: .8rem; font-weight: 650; color: #cfd4c3; }
 .setting-field .ico { color: var(--accent); }
 .setting-field select { width: 100%; }
+.setting-field .field-help { margin: .4rem 0 0; font-size: .74rem; line-height: 1.4; color: var(--dim); }
+.setting-field .autoload-row { margin: 0; min-height: 44px; padding: .3rem .8rem; border: 1px solid var(--line-2); border-radius: 12px; background: #10130d; }
+.setting-field .autoload-row > span { display: flex; align-items: center; gap: .4rem; }
 .mods { margin-top: 1.5rem; }
 .mods-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .7rem; margin: 0 0 .8rem; font-size: 1rem; }
 .mods-sub { font-size: .78rem; font-weight: 500; color: var(--dim); }
@@ -313,7 +316,7 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 }
 #menu-btn:hover:not(:disabled), #menu-btn:focus-visible { opacity: 1; background: #0d0f0be6; border-color: var(--accent); }
 #menu-btn:active:not(:disabled) { transform: translateX(-50%) scale(.94); }
-.pause-ico { width: 12px; height: 14px; border-inline: 4px solid var(--accent-2); }
+.menu-ico { width: 20px; height: 20px; fill: none; stroke: var(--accent-2); stroke-linecap: round; stroke-linejoin: round; }
 #touch-layer.tc-editing + #menu-btn { visibility: hidden; }
 
 /* ---------- dialogs (pause menu and keyboard) ---------- */
@@ -410,14 +413,48 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 #keyboard-dialog { width: min(38rem, calc(100% - 1.5rem)); }
 #keyboard-dialog p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
 .keyboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; margin-top: .9rem; }
-.keyboard-grid button { display: flex; justify-content: space-between; align-items: center; gap: .25rem; text-align: left; font-size: .86rem; min-height: 40px; background: #ffffff08; border-color: var(--line); }
+.keyboard-grid button { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .35rem; text-align: left; font-size: .86rem; min-height: 40px; background: #ffffff08; border-color: var(--line); }
+.keyboard-grid .bind-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keyboard-grid .pad-chip { color: #cfe3a6; background: #1a2412; border: 1px solid #9fbf5a55; border-radius: 99px; padding: .1em .55em; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.player-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .3rem; padding: .25rem; margin-bottom: .8rem; border: 1px solid var(--line-2); border-radius: 14px; background: #0d100a; }
+.player-tabs [role=tab] { min-height: 38px; border: 0; background: transparent; color: var(--muted); }
+.player-tabs [role=tab][aria-selected="true"] { color: var(--accent-text); background: linear-gradient(180deg, var(--accent-2), var(--accent)); }
+#keyboard-dialog .pads-info { margin-top: .45rem; color: #cfe3a6; font-size: .8rem; }
 .keyboard-grid button[aria-pressed="true"] { border-color: var(--accent); background: #f4b7401f; }
 .keyboard-grid kbd { color: var(--accent-2); background: #0d100a; border: 1px solid #ffffff26; border-bottom-width: 3px; border-radius: 7px; padding: .1em .45em; font-family: inherit; font-weight: 700; overflow-wrap: anywhere; }
 #keyboard-dialog #keyboard-status { min-height: 1.4em; margin: .7rem 0; color: var(--accent); }
-@media (max-width: 460px) { .keyboard-grid button { padding-inline: .5rem; } }
+@media (max-width: 560px) { .keyboard-grid { grid-template-columns: minmax(0, 1fr); } .keyboard-grid button { padding-inline: .6rem; } }
 
 @media (prefers-reduced-motion: reduce) {
   .shine::after, .cover-glow, .cover-art, .loadbar span { animation: none; }
   .shine::after { display: none; }
   #game-menu[open], #keyboard-dialog[open] { animation: none; }
 }
+
+/* ---------- two players, split screen ---------- */
+/* Portrait device: player 2's half is turned 180 degrees, so both players see
+ * their own copy of the game upright. If the device rotates anyway, app.mjs
+ * turns the whole container back so nothing moves. */
+#duo { position: fixed; z-index: 9; inset: 0; display: grid; grid-template-rows: 1fr 1fr; background: #050604; overflow: hidden; transform-origin: 50% 50%; }
+.duo-half { position: relative; min-height: 0; overflow: hidden; }
+.duo-p2 { transform: rotate(180deg); border-bottom: 1px solid #f4b74040; }
+.duo-p1 { border-top: 1px solid #f4b74040; }
+.duo-screen { position: absolute; inset: 0 0 auto; height: 64%; display: grid; place-items: center; padding-inline: calc(4px + var(--safe-l)) calc(4px + var(--safe-r)); }
+.duo-screen canvas { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; image-rendering: pixelated; background: transparent; }
+.duo-tag { position: absolute; left: 50%; bottom: calc(6px + var(--safe-b)); transform: translateX(-50%); font-size: .7rem; font-weight: 800; letter-spacing: .15em; color: var(--accent); opacity: .55; pointer-events: none; }
+.duo-p2 .duo-tag { bottom: calc(6px + var(--safe-t)); }
+.duo-touch { position: absolute; inset: 0; z-index: 2; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+.duo-touch.tc-hidden { display: none; }
+.duo-touch.tc-editing { background: rgba(0, 0, 0, .25); }
+.duo-touch.tc-editing .tc { outline: 2px dashed rgba(255, 255, 255, .5); outline-offset: 3px; opacity: .9; }
+.duo-touch.tc-editing .tc-selected { outline: 3px solid var(--accent); }
+body.duo-playing { overflow: hidden; background: #050604; }
+body.duo-playing .screen { visibility: hidden; height: 100dvh; }
+body.duo-playing main { width: 100%; max-width: none; padding: 0; }
+/* The menu button sits where the two screens meet. */
+body.duo-playing #menu-btn { top: 50%; left: auto; right: calc(6px + var(--safe-r)); transform: translateY(-50%); width: 40px; height: 40px; min-height: 40px; }
+body.duo-playing #menu-btn:active:not(:disabled) { transform: translateY(-50%) scale(.94); }
+body.duo-playing #touch-editor { top: 75%; }
+body.duo-playing #touch-editor.for-p2 { top: 25%; transform: translate(-50%, -50%) rotate(180deg); }
+body.duo-playing #game-status { position: fixed; z-index: 12; top: 50%; inset-inline: 1rem; transform: translateY(-50%); margin: 0; }
+body.duo-editing #menu-btn { visibility: hidden; }

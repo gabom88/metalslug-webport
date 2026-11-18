@@ -6,12 +6,9 @@
  * Keys: arrows, Z/X/C/V = A/B/C/D, 1/2 = start P1/P2, 3 = select,
  * 5/6 = coin 1/2, 9 = service, F2 = test switch, Esc = quit.
  *
- * Gamepads (SDL's GameController layout, so any pad SDL knows): the first
- * connected is player 1, the second player 2, plugged in at any time.
- * D-pad or left stick; south/east/west/north (Xbox A/B/X/Y) = Neo Geo
- * A/B/C/D; Start = start; Back = coin; left shoulder = select. Keyboard
- * and pads work together. A pad SDL doesn't know can be described with the
- * SDL_GAMECONTROLLERCONFIG environment variable.
+ * Keyboard, touch and gamepads (Gamepad API, remappable) are read by the
+ * page, which sends player 1 through web_input() and player 2 through
+ * web_input2().
  */
 #include "ng_internal.h"
 #define SDL_MAIN_HANDLED
@@ -24,39 +21,28 @@ static SDL_Renderer *s_ren;
 static SDL_Texture *s_tex;
 /* Hide the eight edge pixels on each side of the arcade image. */
 enum { WEB_VISIBLE_WIDTH = 304, WEB_EDGE = (NG_SCREEN_W - WEB_VISIBLE_WIDTH) / 2 };
-static int web_stretch;
-static unsigned web_buttons;
+static int web_stretch, s_duo;
+static unsigned web_buttons, web_buttons2;
 EMSCRIPTEN_KEEPALIVE void web_input(unsigned buttons) {
     web_buttons = buttons;
 }
+/* Player 2: bits 0-7 = joystick and A-D, bit 8 = start, bit 9 = coin. */
+EMSCRIPTEN_KEEPALIVE void web_input2(unsigned buttons) {
+    web_buttons2 = buttons;
+}
+/* Split-screen two-player mode: the page draws the frame twice itself. */
+EMSCRIPTEN_KEEPALIVE void web_duo(int on) {
+    s_duo = !!on;
+}
 static SDL_AudioDeviceID s_audio;
-static SDL_GameController *s_pad[2];     /* player 1, player 2 */
-
-/* ponytail: a fixed layout; remapping belongs to the frontend (ROADMAP.md) */
-static void pad_added(int index) {
-    for (int i = 0; i < 2; i++)
-        if (!s_pad[i]) {
-            s_pad[i] = SDL_GameControllerOpen(index);
-            if (s_pad[i]) fprintf(stderr, "gamepad: %s is player %d\n", SDL_GameControllerName(s_pad[i]), i + 1);
-            return;
-        }
-}
-
-static void pad_removed(SDL_JoystickID id) {
-    for (int i = 0; i < 2; i++)
-        if (s_pad[i] && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(s_pad[i])) == id) {
-            SDL_GameControllerClose(s_pad[i]);
-            s_pad[i] = NULL;
-        }
-}
+/* Gamepads are read by the page (Gamepad API) so players can remap them. */
 
 EMSCRIPTEN_KEEPALIVE void web_display_mode(int stretch) {
     web_stretch = !!stretch;
     if (s_ren) SDL_RenderSetLogicalSize(s_ren, web_stretch ? 0 : WEB_VISIBLE_WIDTH, web_stretch ? 0 : NG_SCREEN_H);
 }
 int web_dash_pressed(void) {
-    return !!(web_buttons & 0x8000) ||
-        (s_pad[0] && SDL_GameControllerGetButton(s_pad[0], SDL_CONTROLLER_BUTTON_RIGHTSHOULDER));
+    return !!(web_buttons & 0x8000);
 }
 
 int window_open(const char *title, int scale) {
@@ -82,9 +68,6 @@ int window_open(const char *title, int scale) {
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) == 0)
         s_audio = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
     if (!s_audio) fprintf(stderr, "warning: no sound: %s\n", SDL_GetError());
-    /* Pads already connected arrive as SDL_CONTROLLERDEVICEADDED events. */
-    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0)
-        fprintf(stderr, "warning: no gamepads: %s\n", SDL_GetError());
     return 0;
 }
 
@@ -105,24 +88,9 @@ void window_audio(const int16_t *samples, size_t frames) {
     SDL_PauseAudioDevice(s_audio, 0);
 }
 
-static void read_pad(SDL_GameController *c, uint8_t *bits, uint8_t *start, uint8_t *coin, uint8_t *select) {
-    enum { DEAD = 12000 };   /* about a third of the stick's travel */
-    int x = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTX);
-    int y = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTY);
-#define PAD(b) SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_##b)
-    if (PAD(DPAD_UP) || y < -DEAD) *bits |= NG_UP;
-    if (PAD(DPAD_DOWN) || y > DEAD) *bits |= NG_DOWN;
-    if (PAD(DPAD_LEFT) || x < -DEAD) *bits |= NG_LEFT;
-    if (PAD(DPAD_RIGHT) || x > DEAD) *bits |= NG_RIGHT;
-    if (PAD(A)) *bits |= NG_A;
-    if (PAD(B)) *bits |= NG_B;
-    if (PAD(X)) *bits |= NG_C;
-    if (PAD(Y)) *bits |= NG_D;
-    *start |= PAD(START);
-    *coin |= PAD(BACK);
-    *select |= PAD(LEFTSHOULDER);
-#undef PAD
-}
+EM_JS(void, duo_present, (const uint32_t *fb), {
+    if (Module.duoFrame) Module.duoFrame(fb);
+});
 
 EM_JS(void, set_title_link, (int visible), {
     const link = document.getElementById("title-credit-link");
@@ -148,8 +116,6 @@ bool window_frame(const uint32_t *fb, ng_input_t *in) {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) return false;
-        if (e.type == SDL_CONTROLLERDEVICEADDED) pad_added(e.cdevice.which);
-        if (e.type == SDL_CONTROLLERDEVICEREMOVED) pad_removed(e.cdevice.which);
     }
     in->p1 |= web_buttons & 255;
     in->start1 |= (web_buttons >> 8) & 1;
@@ -159,9 +125,12 @@ bool window_frame(const uint32_t *fb, ng_input_t *in) {
     in->select1 |= (web_buttons >> 12) & 1;
     in->service |= (web_buttons >> 13) & 1;
     in->test |= (web_buttons >> 14) & 1;
-    if (s_pad[0]) read_pad(s_pad[0], &in->p1, &in->start1, &in->coin1, &in->select1);
-    if (s_pad[1]) read_pad(s_pad[1], &in->p2, &in->start2, &in->coin2, &in->select2);
-    if (fb) {
+    in->p2 |= web_buttons2 & 255;
+    in->start2 |= (web_buttons2 >> 8) & 1;
+    in->coin2 |= (web_buttons2 >> 9) & 1;
+    if (fb && s_duo) {
+        duo_present(fb);
+    } else if (fb) {
         static bool link_visible;
         const bool title = title_credit_present();
         if (title != link_visible) {
@@ -178,8 +147,6 @@ bool window_frame(const uint32_t *fb, ng_input_t *in) {
 }
 
 void window_close(void) {
-    for (int i = 0; i < 2; i++)
-        if (s_pad[i]) SDL_GameControllerClose(s_pad[i]);
     if (s_audio) SDL_CloseAudioDevice(s_audio);
     if (s_tex) SDL_DestroyTexture(s_tex);
     if (s_ren) SDL_DestroyRenderer(s_ren);

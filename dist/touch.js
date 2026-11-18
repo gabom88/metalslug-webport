@@ -2,21 +2,23 @@
 'use strict';
 
 const MetalSlugTouch = (() => {
-  const STORAGE_KEY = 'mslug.touch.v1';
   const B = { UP: 0, DOWN: 1, LEFT: 2, RIGHT: 3, FIRE: 4, JUMP: 5, GRENADE: 6, START: 8, COIN: 9, DASH: 15 };
 
-  // 24x24 line icons (stroke = currentColor).
+  // Line icons from media/ (hurdles, light-gun, bomb, coin-down, play; 16x16).
+  // stroke = currentColor, so each button tints its own icon.
   const ICONS = {
-    dash: '<path d="m5 6 6 6-6 6m8-12 6 6-6 6"/>' ,
-    jump: '<path d="M12 3.5 6.5 10h3.5v5h4v-5h3.5z" fill="currentColor" stroke="none"/><path d="M5 20.5h14"/><path d="M8 17.5h8" opacity=".6"/>',
-    start: '<path d="M9 7v10M15 7v10" stroke-width="2.6"/>',
-    fire: '<path d="M4 8h15v5h-7l-2 6H6l2-6H4z"/><path d="M19 9h2v3h-2M12 13l2 3"/>',
-    grenade: '<path d="M10 8V5h5v3M14 5l3-2 3 1"/><ellipse cx="12" cy="14.5" rx="5" ry="6"/><path d="M8 12h8M7.5 16h9M12 9v11"/>',
-    coin: '<ellipse cx="12" cy="12" rx="7" ry="8"/><path d="M12 8v8m-1-7 1-1"/>',
+    dash: { box: 24, body: '<path d="m5 6 6 6-6 6m8-12 6 6-6 6"/>' },
+    jump: { box: 16, body: '<circle cx="7.25" cy="2.875" r="1.25"/><line x1="6.25" y1="5.5" x2="5.25" y2="8.25"/><line x1="5.25" y1="8.25" x2="11.5" y2="8"/><path d="M5.25 8.25 L3.25 10 L2 8.25"/><path d="M3.5 6.25 L6.25 5.5 L9 4"/><path d="M9.5 13.75 L9.5 11.55 C9.5 11.108 9.858 10.75 10.3 10.75 L12.95 10.75 C13.392 10.75 13.75 11.108 13.75 11.55 L13.75 13.75"/>' },
+    start: { box: 16, body: '<path d="M6.537 3.728 L11.924 7.156 C12.542 7.549 12.542 8.451 11.924 8.844 L6.537 12.272 C5.871 12.696 5 12.217 5 11.428 L5 4.572 C5 3.783 5.871 3.304 6.537 3.728 Z"/>' },
+    fire: { box: 16, body: '<path d="M2.75 4.25 L13 4.25 C13.552 4.25 14 4.698 14 5.25 L14 6.75 C14 7.302 13.552 7.75 13 7.75 L8.5 7.75 L7.661 11.946 C7.567 12.414 7.157 12.75 6.68 12.75 L5.22 12.75 C4.589 12.75 4.115 12.173 4.239 11.554 L5 7.75 L2.75 7.75 C2.198 7.75 1.75 7.302 1.75 6.75 L1.75 5.25 C1.75 4.698 2.198 4.25 2.75 4.25 Z"/><path d="M8.125 9.75 L9.45 9.75 C9.892 9.75 10.25 9.392 10.25 8.95 L10.25 7.75"/>' },
+    grenade: { box: 16, body: '<circle cx="7.25" cy="9.25" r="4.5"/><path d="M5 9.25 A2.25 2.25 0 0 1 7.25 7"/><path d="M10.43 6.07 Q10.75 4.25 11.959 3.615"/><path d="M12.5 1.75 C12.65 2.725 13.025 3.1 14 3.25 C13.025 3.4 12.65 3.775 12.5 4.75 C12.35 3.775 11.975 3.4 11 3.25 C11.975 3.1 12.35 2.725 12.5 1.75 Z"/>' },
+    coin: { box: 16, body: '<path d="M7.25 12.75 A5.5 5.5 0 1 1 12.75 7.25"/><path d="M7.554 4.929 L9.079 5.826 C9.262 5.934 9.375 6.131 9.375 6.343 L9.375 8.157 C9.375 8.369 9.262 8.566 9.079 8.674 L7.554 9.571 C7.366 9.682 7.134 9.682 6.946 9.571 L5.421 8.674 C5.238 8.566 5.125 8.369 5.125 8.157 L5.125 6.343 C5.125 6.131 5.238 5.934 5.421 5.826 L6.946 4.929 C7.134 4.818 7.366 4.818 7.554 4.929 Z"/><line x1="11.75" y1="9.794" x2="11.75" y2="14"/><path d="M9.708 11.958 L11.75 14 L14 11.75"/>' },
   };
 
   function iconSvg(name) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+    const icon = ICONS[name] || { box: 24, body: '' };
+    const width = icon.box === 16 ? 1.15 : 1.9;
+    return `<svg viewBox="0 0 ${icon.box} ${icon.box}" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.body}</svg>`;
   }
 
   // x/y: centre as a fraction of the viewport; size: fraction of the
@@ -40,8 +42,8 @@ const MetalSlugTouch = (() => {
       fire:  { x: 0.77, y: 0.64, size: 0.16, visible: true },
       grenade:   { x: 0.86, y: 0.45, size: 0.16, visible: true },
       dash: { x: 0.95, y: 0.64, size: 0.16, visible: true },
-      coin: { x: 0.40, y: 0.09, size: 0.10, visible: true },
-      start:  { x: 0.60, y: 0.09, size: 0.10, visible: true },
+      coin: { x: 0.06, y: 0.10, size: 0.12, visible: true },
+      start:  { x: 0.94, y: 0.10, size: 0.12, visible: true },
     },
     // The game occupies the top 4:3 band (see .portrait-play in app.css).
     portrait: {
@@ -51,11 +53,50 @@ const MetalSlugTouch = (() => {
       fire:  { x: 0.60, y: 0.71, size: 0.19, visible: true },
       grenade:   { x: 0.75, y: 0.61, size: 0.19, visible: true },
       dash: { x: 0.90, y: 0.71, size: 0.19, visible: true },
-      coin: { x: 0.40, y: 0.93, size: 0.12, visible: true },
-      start:  { x: 0.60, y: 0.93, size: 0.12, visible: true },
+      coin: { x: 0.08, y: 0.06, size: 0.13, visible: true },
+      start:  { x: 0.92, y: 0.06, size: 0.13, visible: true },
+    },
+    // Split-screen: one half of the device per player, in that half's own
+    // coordinates (its top edge is the middle of the device). The game takes
+    // the top 64% of the half; the controls sit near the player's edge.
+    duo: {
+      dpad:   { x: 0.20, y: 0.81, size: 0.34, visible: true },
+      stick:  { x: 0.20, y: 0.81, size: 0.34, visible: false },
+      jump:   { x: 0.80, y: 0.91, size: 0.16, visible: true },
+      fire:   { x: 0.63, y: 0.84, size: 0.16, visible: true },
+      grenade: { x: 0.80, y: 0.74, size: 0.16, visible: true },
+      dash:   { x: 0.95, y: 0.82, size: 0.15, visible: true },
+      coin:   { x: 0.07, y: 0.07, size: 0.11, visible: true },
+      start:  { x: 0.93, y: 0.07, size: 0.11, visible: true },
     },
   };
+  // Layouts saved before this revision keep their positions, except coin and
+  // start, which moved to the top corners.
+  const LAYOUT_REV = 2;
   const DEFAULT_SETTINGS = { opacity: 0.7, mode: 'dpad', haptics: true, dashEnabled: false };
+  // Each pad's D-pad SVG needs its own mask/gradient ids: url(#id) resolves
+  // to the first match in the page, which may sit in a hidden layer.
+  let dpadInstances = 0;
+
+  // Pixel-art arrow pointing left (14x11 grid), drawn like the game's HUD:
+  // yellow with an orange shade, a light top edge and a black outline.
+  const GUIDE_ARROW = '<svg class="tc-guide-arrow" viewBox="-1 -1 16 13" shape-rendering="crispEdges">' +
+    '<defs><linearGradient id="tcg-fill" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#fff38a"/><stop offset=".45" stop-color="#ffd21f"/><stop offset=".55" stop-color="#f6b800"/><stop offset="1" stop-color="#d97a00"/>' +
+    '</linearGradient></defs>' +
+    '<path d="M0 5h1v-1h1v-1h1v-1h1v-1h1v-1h1v3h8v5h-8v3h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1z" fill="#1a0e00" stroke="#1a0e00" stroke-width="1.6" stroke-linejoin="miter" transform="translate(.5 .7)"/>' +
+    '<path d="M0 5h1v-1h1v-1h1v-1h1v-1h1v-1h1v3h8v5h-8v3h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1z" fill="url(#tcg-fill)" stroke="#1a0e00" stroke-width="1" stroke-linejoin="miter"/>' +
+    '<path d="M2 4h1v-1h1v-1h1v-1h1M6 3h8" fill="none" stroke="#fffbe0" stroke-width=".8" opacity=".9"/>' +
+    '</svg>';
+  const GUIDE_TEXT = { coin: '¡Inserta crédito!', start: '¡Pulsa start!' };
+
+  // One touch pad per layer. options.storageKey: where it is saved;
+  // options.layouts: the DEFAULT_LAYOUTS keys it uses; options.angle(): the
+  // layer's on-screen rotation in degrees (the split-screen halves turn).
+  function create(options) {
+  const STORAGE_KEY = options.storageKey;
+  const LAYOUT_KEYS = options.layouts || ['landscape', 'portrait'];
+  const angle = options.angle || (() => 0);
 
   let layouts = {};
   let settings = {};
@@ -76,6 +117,7 @@ const MetalSlugTouch = (() => {
   // layout in portrait with oversized controls.
   const portraitQuery = window.matchMedia ? window.matchMedia('(orientation: portrait)') : null;
   function orientation() {
+    if (LAYOUT_KEYS.length === 1) return LAYOUT_KEYS[0];
     if (portraitQuery) return portraitQuery.matches ? 'portrait' : 'landscape';
     return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
   }
@@ -91,15 +133,17 @@ const MetalSlugTouch = (() => {
   function find(id) { return controls().find((c) => c.id === id) || null; }
 
   function load() {
-    layouts = clone(DEFAULT_LAYOUTS);
+    layouts = {};
+    for (const o of LAYOUT_KEYS) layouts[o] = clone(DEFAULT_LAYOUTS[o]);
     settings = { ...DEFAULT_SETTINGS, dashEnabled: settings.dashEnabled };
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (saved) {
         Object.assign(settings, saved.settings || {});
-        for (const o of ['landscape', 'portrait']) {
+        for (const o of LAYOUT_KEYS) {
           const so = (saved.layouts || {})[o] || {};
           for (const id in so) {
+            if (saved.rev !== LAYOUT_REV && (id === 'coin' || id === 'start')) continue;
             if (layouts[o][id]) Object.assign(layouts[o][id], so[id]);
           }
         }
@@ -109,11 +153,11 @@ const MetalSlugTouch = (() => {
   }
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings, layouts })); } catch (_) { /* ignore */ }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ rev: LAYOUT_REV, settings, layouts })); } catch (_) { /* ignore */ }
   }
 
   function applyMode() {
-    for (const o of ['landscape', 'portrait']) {
+    for (const o of LAYOUT_KEYS) {
       layouts[o].dpad.visible = settings.mode !== 'stick';
       layouts[o].stick.visible = settings.mode === 'stick';
     }
@@ -128,8 +172,19 @@ const MetalSlugTouch = (() => {
   }
   function W() { return (layer && layer.clientWidth) || layerRect().width || window.innerWidth; }
   function H() { return (layer && layer.clientHeight) || layerRect().height || window.innerHeight; }
-  function lx(e) { return e.clientX - layerRect().left; }
-  function ly(e) { return e.clientY - layerRect().top; }
+  // Pointer position in the layer's own (unrotated) coordinates: undo the
+  // layer's rotation (0/90/180/270 degrees) around its centre.
+  function local(e) {
+    const r = layerRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const a = -angle() * Math.PI / 180;
+    const cos = Math.round(Math.cos(a));
+    const sin = Math.round(Math.sin(a));
+    return { x: dx * cos - dy * sin + W() / 2, y: dx * sin + dy * cos + H() / 2 };
+  }
+  function lx(e) { return local(e).x; }
+  function ly(e) { return local(e).y; }
 
   function unit() { return Math.min(W(), H()); }
 
@@ -145,7 +200,7 @@ const MetalSlugTouch = (() => {
       } else if (c.type === 'dpad') {
         el.classList.add('ctrl-dpad');
         el.dataset.st = 'rest';
-        el.innerHTML = (typeof DpadModelB !== 'undefined') ? DpadModelB.markup() : '';
+        el.innerHTML = (typeof DpadModelB !== 'undefined') ? DpadModelB.markup().replace(/dpb-/g, 'dpb' + (++dpadInstances) + '-') : '';
       } else {
         el.innerHTML = `<span class="tc-icon">${iconSvg(c.icon)}</span>`;
         el.setAttribute('aria-label', c.label);
@@ -154,7 +209,43 @@ const MetalSlugTouch = (() => {
       layer.appendChild(el);
       elements.set(c.id, el);
     }
+    guideEl = document.createElement('div');
+    guideEl.className = 'tc-guide';
+    guideEl.hidden = true;
+    guideEl.setAttribute('aria-hidden', 'true');
+    guideEl.innerHTML = GUIDE_ARROW.replace(/tcg-fill/g, 'tcg' + (++dpadInstances) + '-fill') + '<span class="tc-guide-label"></span>';
+    layer.appendChild(guideEl);
     layout();
+  }
+
+  // First-run guide: a yellow arcade arrow next to the coin, then the start
+  // button. It lives in the layer, so it turns with a rotated half.
+  let guideStep = null;
+  let guideEl = null;
+  function guide(step) {
+    guideStep = step || null;
+    layout();
+  }
+  function placeGuide() {
+    if (!guideEl) return;
+    const c = guideStep ? find(guideStep) : null;
+    const on = Boolean(c && c.visible && shown && !editing);
+    guideEl.hidden = !on;
+    if (!on) return;
+    const w = W(), hgt = H(), s = c.size * unit();
+    const cx = Math.max(s / 2, Math.min(w - s / 2, c.x * w));
+    const cy = Math.max(s / 2, Math.min(hgt - s / 2, c.y * hgt));
+    const pointsLeft = cx < w / 2;
+    const aw = Math.max(60, Math.min(120, s * 1.4));
+    const ah = aw * 11 / 14;
+    guideEl.classList.toggle('tc-guide-right', !pointsLeft);
+    guideEl.classList.toggle('tc-guide-up', cy > hgt / 2);
+    guideEl.style.width = aw + 'px';
+    guideEl.style.height = ah + 'px';
+    guideEl.style.left = (pointsLeft ? cx + s / 2 + 4 : cx - s / 2 - 4 - aw) + 'px';
+    guideEl.style.top = (cy - ah / 2) + 'px';
+    guideEl.style.fontSize = Math.max(13, Math.min(20, aw * 0.22)) + 'px';
+    guideEl.querySelector('.tc-guide-label').textContent = GUIDE_TEXT[guideStep] || '';
   }
 
   function layout() {
@@ -176,6 +267,7 @@ const MetalSlugTouch = (() => {
       el.style.display = c.visible ? '' : 'none';
       el.classList.toggle('tc-selected', editing && c.id === selectedId);
     }
+    placeGuide();
   }
 
   function controlAt(x, y, slop) {
@@ -377,6 +469,7 @@ const MetalSlugTouch = (() => {
     shown = !!on;
     layer.classList.toggle('tc-hidden', !shown);
     if (!shown) release();
+    placeGuide();
   }
 
   function setEditing(on, callbacks) {
@@ -435,10 +528,16 @@ const MetalSlugTouch = (() => {
   }
 
   return {
-    init, show, setEditing, updateSelected, setSetting, reset, release, showAll, orientation,
+    init, show, guide, setEditing, updateSelected, setSetting, reset, release, showAll, orientation, layout,
     get settings() { return settings; },
     get shown() { return shown; },
     get editing() { return editing; },
     get selected() { return selectedId ? find(selectedId) : null; },
   };
+  }
+
+  // The single-player pad keeps its original storage key.
+  const main = create({ storageKey: 'mslug.touch.v1' });
+  main.create = create;
+  return main;
 })();

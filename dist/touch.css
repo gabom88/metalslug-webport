@@ -21,20 +21,29 @@
   color: #f4f4f7;
   pointer-events: none;
 }
-/* Neutral round buttons with an icon of the action (no PlayStation glyphs). */
+/* Round buttons in the launcher's olive and amber palette; each action has
+ * its own ring and icon colour (icons from media/). */
 .tc-button {
+  --ring: #f4b740;
+  --ink: #ffd27a;
+  color: var(--ink);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #4a4a52 0%, #2b2b31 60%, #1d1d22 100%);
-  border: 2px solid rgba(255, 255, 255, .22);
-  box-shadow: 0 3px 0 #0d0d10, 0 6px 14px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .15);
+  background: radial-gradient(circle at 35% 28%, #3a4230 0%, #232a1c 58%, #141810 100%);
+  border: 2px solid color-mix(in srgb, var(--ring) 70%, transparent);
+  box-shadow: 0 3px 0 #0a0c08, 0 6px 14px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 3px color-mix(in srgb, var(--ring) 14%, transparent);
 }
-.tc-icon { width: 58%; height: 58%; display: block; }
-.tc-icon svg { width: 100%; height: 100%; display: block; }
-.tc-small .tc-icon { width: 46%; height: 46%; }
+.tc-button[data-id="fire"] { --ring: #e2551f; --ink: #ffb28a; }
+.tc-button[data-id="jump"] { --ring: #f4b740; --ink: #ffd27a; }
+.tc-button[data-id="grenade"] { --ring: #9fbf5a; --ink: #d6ec9e; }
+.tc-button[data-id="dash"] { --ring: #6fb3c9; --ink: #bfe6f2; }
+.tc-button[data-id="coin"], .tc-button[data-id="start"] { --ring: #f4b740; --ink: #f5eedc; }
+.tc-icon { width: 60%; height: 60%; display: block; }
+.tc-icon svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.tc-small .tc-icon { width: 54%; height: 54%; }
 .tc-pressed.tc-button {
   transform: translateY(2px) scale(.96);
-  box-shadow: 0 1px 0 #0d0d10, 0 3px 8px rgba(0, 0, 0, .45), inset 0 2px 6px rgba(0, 0, 0, .5);
-  background: radial-gradient(circle at 50% 45%, #5b5b66 0%, #34343c 70%);
+  box-shadow: 0 1px 0 #0a0c08, 0 3px 8px rgba(0, 0, 0, .45), inset 0 2px 6px rgba(0, 0, 0, .5), inset 0 0 0 40px color-mix(in srgb, var(--ring) 22%, transparent);
+  background: radial-gradient(circle at 50% 45%, #4a553c 0%, #2b3322 70%);
 }
 
 /* D-pad: GBoy-JS "model B" SVG, all 9 states built in; show the current one. */
@@ -90,3 +99,43 @@
 input[type=range] { width: 120px; accent-color: var(--accent); }
 .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
 
+
+/* ---------- first-run guide arrow (arcade style) ---------- */
+.tc-guide { position: absolute; z-index: 3; pointer-events: none; }
+.tc-guide-arrow {
+  display: block; width: 100%; height: 100%; overflow: visible;
+  filter: drop-shadow(0 0 6px rgba(255, 196, 0, .55));
+  animation: tc-guide-nudge .5s steps(2, jump-none) infinite alternate, tc-guide-blink 1s steps(1) infinite;
+}
+.tc-guide-right .tc-guide-arrow { transform: scaleX(-1); animation-name: tc-guide-nudge-right, tc-guide-blink; }
+.tc-guide-label {
+  position: absolute; top: calc(100% + .2em); left: 0;
+  white-space: nowrap; font-weight: 900; font-style: italic; letter-spacing: .06em; text-transform: uppercase;
+  color: #ffd84a;
+  text-shadow: 2px 0 #1a0e00, -2px 0 #1a0e00, 0 2px #1a0e00, 0 -2px #1a0e00, 2px 2px #1a0e00, -2px 2px #1a0e00, 2px -2px #1a0e00, -2px -2px #1a0e00, 0 4px 0 #6b3a00;
+  animation: tc-guide-blink 1s steps(1) infinite;
+}
+.tc-guide-right .tc-guide-label { left: auto; right: 0; }
+.tc-guide-up .tc-guide-label { top: auto; bottom: calc(100% + .35em); }
+@keyframes tc-guide-nudge { from { transform: translateX(0); } to { transform: translateX(-22%); } }
+@keyframes tc-guide-nudge-right { from { transform: scaleX(-1) translateX(0); } to { transform: scaleX(-1) translateX(-22%); } }
+@keyframes tc-guide-blink { 0%, 75% { opacity: 1; } 76%, 100% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .tc-guide-arrow, .tc-guide-label { animation: none; }
+  .tc-guide-right .tc-guide-arrow { transform: scaleX(-1); }
+}
+
+/* Keyboard players get the same hint as a banner over the game. */
+#key-guide {
+  position: absolute; z-index: 11; left: 50%; top: 58%; margin: 0; transform: translateX(-50%);
+  display: flex; align-items: center; gap: .55em; pointer-events: none;
+  font-weight: 900; font-style: italic; letter-spacing: .06em; text-transform: uppercase; font-size: clamp(14px, 2.4vw, 22px);
+  color: #ffd84a; white-space: nowrap;
+  text-shadow: 2px 0 #1a0e00, -2px 0 #1a0e00, 0 2px #1a0e00, 0 -2px #1a0e00, 2px 2px #1a0e00, -2px 2px #1a0e00, 2px -2px #1a0e00, -2px -2px #1a0e00, 0 4px 0 #6b3a00;
+  animation: tc-guide-blink 1s steps(1) infinite;
+}
+#key-guide kbd {
+  font: inherit; font-style: normal; color: #1a0e00; text-shadow: none;
+  background: linear-gradient(180deg, #fff38a, #ffd21f 50%, #d97a00); border: 2px solid #1a0e00; border-radius: 6px;
+  padding: .05em .45em; box-shadow: 0 3px 0 #1a0e00;
+}

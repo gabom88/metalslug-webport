@@ -17,6 +17,10 @@ async function slot(mode, action) {
     });
   } finally { db.close(); }
 }
+/* Earlier engines whose save-state layout is identical to this one
+ * (only the page-side input changed), so their saves still load. */
+const COMPATIBLE_BUILDS = ['0ec7570a6d935e430544f9cf5e2cdd3c719cd72da0b160ff5ba00d54f00640f1'];
+
 export async function stateControls({ engine, canSave, clearInput, resume, doubleJump, onRestoreMods }) {
   const buildResponse = await fetch(new URL('./state-build.json', import.meta.url));
   if (!buildResponse.ok) throw new Error('Falta el identificador del motor.');
@@ -60,11 +64,11 @@ export async function stateControls({ engine, canSave, clearInput, resume, doubl
     } finally { busy = false; paint(); }
   }
   async function load(record) {
-    if (busy || !record || !canSave()) return;
+    if (busy || !record || !canSave()) return false;
     busy = true;
     paint();
     try {
-      if (record.build !== build || !(record.bytes instanceof Uint8Array) ||
+      if ((record.build !== build && !COMPATIBLE_BUILDS.includes(record.build)) || !(record.bytes instanceof Uint8Array) ||
           record.bytes.length !== engine._web_state_size()) {
         throw new Error('Este guardado pertenece a otra versión del motor.');
       }
@@ -75,7 +79,8 @@ export async function stateControls({ engine, canSave, clearInput, resume, doubl
       onRestoreMods();
       status.textContent = 'Partida cargada · ' + time(record);
       resume();
-    } catch (error) { status.textContent = error.message; }
+      return true;
+    } catch (error) { status.textContent = error.message; return false; }
     finally { busy = false; paint(); }
   }
   function remember() {
@@ -94,4 +99,10 @@ export async function stateControls({ engine, canSave, clearInput, resume, doubl
   }
   scheduleAuto();
   paint();
+  return {
+    get latest() { return latest; },
+    /* Resume the most recent save when a game starts. */
+    loadLatest: () => load(latest),
+    time,
+  };
 }
