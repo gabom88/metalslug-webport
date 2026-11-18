@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#12140f">
   <title>Metal Slug Web</title>
   <meta name="description" content="Metal Slug de Neo Geo, jugable en el navegador y sin conexión.">
@@ -41,6 +41,8 @@
       <symbol id="i-duo" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 12h12"/><path d="M10 6.5h4M10 17.5h4"/></symbol>
       <symbol id="i-restart" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.7"/><path d="M20 4v4.7h-4.7"/></symbol>
       <symbol id="i-screen-move" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="10" rx="1.5"/><path d="M12 2.5v2M12 17.5v4M9.8 19.3 12 21.5l2.2-2.2M9.8 4.7 12 2.5l2.2 2.2M2.5 11h1.5M20 11h1.5"/></symbol>
+      <symbol id="i-coin" viewBox="0 0 16 16"><path d="M7.25 12.75 A5.5 5.5 0 1 1 12.75 7.25"/><path d="M7.554 4.929 L9.079 5.826 C9.262 5.934 9.375 6.131 9.375 6.343 L9.375 8.157 C9.375 8.369 9.262 8.566 9.079 8.674 L7.554 9.571 C7.366 9.682 7.134 9.682 6.946 9.571 L5.421 8.674 C5.238 8.566 5.125 8.369 5.125 8.157 L5.125 6.343 C5.125 6.131 5.238 5.934 5.421 5.826 L6.946 4.929 C7.134 4.818 7.366 4.818 7.554 4.929 Z"/><line x1="11.75" y1="9.794" x2="11.75" y2="14"/><path d="M9.708 11.958 L11.75 14 L14 11.75"/></symbol>
+      <symbol id="i-start" viewBox="0 0 16 16"><path d="M6.537 3.728 L11.924 7.156 C12.542 7.549 12.542 8.451 11.924 8.844 L6.537 12.272 C5.871 12.696 5 12.217 5 11.428 L5 4.572 C5 3.783 5.871 3.304 6.537 3.728 Z"/></symbol>
       <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
     </defs>
   </svg>
@@ -189,6 +191,15 @@
           <div class="duo-screen"><div class="duo-frame"><canvas id="duo-canvas-1" width="304" height="224" aria-hidden="true"></canvas></div></div>
           <span class="duo-tag" aria-hidden="true">J1</span>
           <div id="duo-touch-1" class="duo-touch tc-hidden" aria-label="Mando táctil del jugador 1"></div>
+        </div>
+        <!-- Credit and start of both players share one row in the middle of
+             the device; player 2's keys are turned to face player 2. -->
+        <div id="duo-bar" class="duo-bar" hidden>
+          <button type="button" class="duo-key" data-player="0" data-bit="512" aria-label="Crédito jugador 1"><svg class="duo-key-ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-coin"/></svg><span>Crédito</span></button>
+          <button type="button" class="duo-key" data-player="0" data-bit="256" aria-label="Start jugador 1"><svg class="duo-key-ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-start"/></svg><span>Start</span></button>
+          <span class="duo-bar-gap" aria-hidden="true"></span>
+          <button type="button" class="duo-key p2" data-player="1" data-bit="256" aria-label="Start jugador 2"><svg class="duo-key-ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-start"/></svg><span>Start</span></button>
+          <button type="button" class="duo-key p2" data-player="1" data-bit="512" aria-label="Crédito jugador 2"><svg class="duo-key-ico" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-coin"/></svg><span>Crédito</span></button>
         </div>
       </div>
       <button type="button" id="menu-btn" aria-label="Pausa y opciones" aria-haspopup="dialog" aria-controls="game-menu" aria-expanded="false"><svg class="menu-ico" aria-hidden="true"><use href="#i-menu"/></svg></button>

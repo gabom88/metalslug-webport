@@ -107,6 +107,9 @@ const MetalSlugTouch = (() => {
   const STORAGE_KEY = options.storageKey;
   const LAYOUT_KEYS = options.layouts || ['landscape', 'portrait'];
   const angle = options.angle || (() => 0);
+  // Controls this pad never shows (split screen: credit and start live in
+  // a shared bar in the middle of the device).
+  const omit = options.omit || [];
   // Portrait: y fractions are measured in the area below the game (regionTop
   // px from the top), but the layer covers the whole screen, so a control
   // can still be dragged above, over the game (negative y).
@@ -142,6 +145,7 @@ const MetalSlugTouch = (() => {
     return CONTROL_DEFS.map((definition) => {
       const control = { ...definition, ...layout[definition.id] };
       if (control.id === 'dash' && !settings.dashEnabled) control.visible = false;
+      if (omit.includes(control.id)) control.visible = false;
       return control;
     });
   }

@@ -76,8 +76,8 @@ const menuButton = $('menu-btn');
 const touch = MetalSlugTouch;
 let duoRotation = 0;
 const duoTouch = [
-  touch.create({ storageKey: 'mslug.touch.duo1', layouts: ['duo'], angle: () => duoRotation }),
-  touch.create({ storageKey: 'mslug.touch.duo2', layouts: ['duo'], angle: () => duoRotation + 180 }),
+  touch.create({ storageKey: 'mslug.touch.duo1', layouts: ['duo'], angle: () => duoRotation, omit: ['coin', 'start'] }),
+  touch.create({ storageKey: 'mslug.touch.duo2', layouts: ['duo'], angle: () => duoRotation + 180, omit: ['coin', 'start'] }),
 ];
 let duo = false;
 let activeTouch = touch;
@@ -192,7 +192,23 @@ function showTouch(show) {
   for (const pad of duoTouch) pad.show(duo && show);
   $('touch-toggle').setAttribute('aria-pressed', String(show));
   document.body.classList.toggle('touch-playing', show && !duo);
+  $('duo-bar').hidden = !(duo && show);
   paintGuide();
+}
+
+/* ---- split screen: the shared credit / start bar ---- */
+for (const button of document.querySelectorAll('.duo-key')) {
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    if (touchEditing()) return;
+    button.classList.add('pressed');
+    if (duoTouch[0].settings.haptics && navigator.vibrate) { try { navigator.vibrate(8); } catch { /* ignore */ } }
+    pulse(Number(button.dataset.player), Number(button.dataset.bit));
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+    button.addEventListener(type, () => button.classList.remove('pressed'));
+  }
+  button.addEventListener('contextmenu', (event) => event.preventDefault());
 }
 
 /* ---- first run: an arrow points at the coin button, then at start ---- */
@@ -201,6 +217,11 @@ const guide = [null, null];   // per player: 'coin', 'start' or null
 function paintGuide() {
   if (duo) duoTouch.forEach((pad, player) => pad.guide(guide[player]));
   else { touch.guide(guide[0]); for (const pad of duoTouch) pad.guide(null); }
+  /* Split screen: the bar key to press glows instead of an arrow. */
+  for (const button of document.querySelectorAll('.duo-key')) {
+    const step = guide[Number(button.dataset.player)];
+    button.classList.toggle('guide', duo && step === (button.dataset.bit === '512' ? 'coin' : 'start'));
+  }
   /* Without the touch pad, show the key to press instead. */
   const banner = $('key-guide');
   const step = !duo && !touch.shown && !touchEditing() ? guide[0] : null;
@@ -427,7 +448,7 @@ applyMenuPlace();
 const SCREEN_KEY = 'mslug.screen.v1';
 const screenDefaults = { x: 0, y: 0, s: 1 };
 const portraitScreen = matchMedia('(orientation: portrait)');
-const screenOrientation = () => (portraitScreen.matches ? 'portrait' : 'landscape');
+const screenOrientation = () => (duo ? 'duo' : portraitScreen.matches ? 'portrait' : 'landscape');
 let screenPlaces = {};
 try { screenPlaces = JSON.parse(localStorage.getItem(SCREEN_KEY)) || {}; } catch { screenPlaces = {}; }
 const clampScreen = ({ x, y, s }) => ({
@@ -457,9 +478,9 @@ const screenEditor = $('screen-editor');
 const screenLayer = $('screen-edit-layer');
 draggablePanel(screenEditor, $('se-handle'));
 function paintScreenTile() {
-  const usable = !duo && !document.body.classList.contains('stretched');
+  const usable = duo || !document.body.classList.contains('stretched');
   $('screen-config').disabled = !usable;
-  $('screen-config-note').textContent = duo ? 'Solo con 1 jugador' : usable ? 'Mover y tamaño' : 'Solo en imagen Original';
+  $('screen-config-note').textContent = !usable ? 'Solo en imagen Original' : duo ? 'Las dos pantallas' : 'Mover y tamaño';
 }
 menu.addEventListener('close', paintScreenTile);
 menuButton.addEventListener('click', paintScreenTile);
@@ -638,7 +659,20 @@ function startDuo() {
   engine._web_duo(1);
   fitDuo();
   applyMenuPlace();
+  applyScreen();
 }
+
+/* ---- no page zoom anywhere (it was easy to trigger by accident) ---- */
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+}
+document.addEventListener('touchmove', (event) => {
+  if (event.scale !== undefined && event.scale !== 1) event.preventDefault();
+}, { passive: false });
+window.addEventListener('wheel', (event) => { if (event.ctrlKey) event.preventDefault(); }, { passive: false });
+window.addEventListener('keydown', (event) => {
+  if ((event.ctrlKey || event.metaKey) && ['+', '=', '-', '_', '0'].includes(event.key)) event.preventDefault();
+});
 
 /* ---- launcher choices ---- */
 function remember(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } }

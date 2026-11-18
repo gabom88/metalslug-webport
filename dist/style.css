@@ -25,6 +25,8 @@
   color: var(--text);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* No double-tap zoom anywhere (pinch is blocked in app.mjs). */
+html, body { touch-action: manipulation; }
 [hidden] { display: none !important; }
 body { margin: 0; min-width: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
@@ -463,6 +465,13 @@ body.touch-editing #menu-btn.menu-selected { outline: 3px solid var(--accent); }
   width: min(100cqw - 2 * var(--frame-w), (100cqh - 2 * var(--frame-w)) * 19 / 14);
   border: var(--frame-w) solid transparent;
 }
+/* "Ajustar pantalla" in split screen: both copies move (mirrored) and scale alike. */
+body.duo-playing .duo-frame {
+  left: calc(var(--screen-x) * 100vw); top: calc(var(--screen-y) * 100vh);
+  width: calc((100% - 2 * var(--frame-w)) * var(--screen-s));
+  width: calc(min(100cqw - 2 * var(--frame-w), (100cqh - 2 * var(--frame-w)) * 19 / 14) * var(--screen-s));
+}
+body.screen-editing .duo-frame { outline: 2px dashed #f4b740cc; outline-offset: 4px; }
 .duo-frame canvas { display: block; width: 100%; height: auto; aspect-ratio: 19 / 14; image-rendering: pixelated; background: #000; }
 .duo-tag { position: absolute; left: 50%; bottom: calc(6px + var(--safe-b)); transform: translateX(-50%); font-size: .7rem; font-weight: 800; letter-spacing: .15em; color: var(--accent); opacity: .55; pointer-events: none; }
 .duo-p2 .duo-tag { bottom: calc(6px + var(--safe-t)); }
@@ -606,3 +615,26 @@ body.playing:not(.stretched) .game-display::after, .duo-frame::after {
     var(--frame-l) left var(--f) / var(--f) calc(100% - 2 * var(--f)) no-repeat,
     var(--frame-r) right var(--f) / var(--f) calc(100% - 2 * var(--f)) no-repeat;
 }
+
+/* ---------- split screen: credit / start bar in the middle of the device ---------- */
+.duo-bar {
+  position: absolute; left: 50%; top: 50%; z-index: 5; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 4px; pointer-events: none;
+}
+.duo-bar[hidden] { display: none; }
+.duo-bar-gap { width: 50px; flex-shrink: 0; }
+.duo-key {
+  pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-height: 0; height: 26px; min-width: 0; padding: 0 7px; white-space: nowrap;
+  border-radius: 8px; border: 1.5px solid color-mix(in srgb, #f4b740 70%, transparent);
+  background: linear-gradient(180deg, #333b29, #1a1f14); color: #f5eedc;
+  box-shadow: 0 2px 0 #0a0c08, 0 4px 10px rgba(0, 0, 0, .45);
+  font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  opacity: var(--tc-opacity, .85);
+}
+.duo-key.p2 { transform: rotate(180deg); }
+.duo-key-ico { width: 13px; height: 13px; fill: none; stroke: #ffd27a; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.duo-key.pressed { background: linear-gradient(180deg, #4a553c, #2b3322); box-shadow: 0 0 0 #0a0c08, inset 0 2px 5px rgba(0, 0, 0, .5); }
+.duo-key.guide { border-color: #ffd84a; box-shadow: 0 0 0 2px #1a0e00, 0 0 14px 3px #ffd21fcc; animation: tc-guide-blink 1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .duo-key.guide { animation: none; } }
