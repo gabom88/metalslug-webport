@@ -107,6 +107,11 @@ const MetalSlugTouch = (() => {
   const STORAGE_KEY = options.storageKey;
   const LAYOUT_KEYS = options.layouts || ['landscape', 'portrait'];
   const angle = options.angle || (() => 0);
+  // Portrait: y fractions are measured in the area below the game (regionTop
+  // px from the top), but the layer covers the whole screen, so a control
+  // can still be dragged above, over the game (negative y).
+  let regionTop = options.regionTop || (() => 0);
+  function setRegionTop(fn) { regionTop = fn; layout(); }
 
   let layouts = {};
   let settings = {};
@@ -196,7 +201,10 @@ const MetalSlugTouch = (() => {
   function lx(e) { return local(e).x; }
   function ly(e) { return local(e).y; }
 
-  function unit() { return Math.min(W(), H()); }
+  function top0() { return orientation() === 'portrait' ? Math.max(0, Math.min(H() * 0.8, regionTop())) : 0; }
+  function RH() { return H() - top0(); }
+  function yPx(y) { return top0() + y * RH(); }
+  function unit() { return Math.min(W(), RH()); }
 
   function build() {
     layer.innerHTML = '';
@@ -244,7 +252,7 @@ const MetalSlugTouch = (() => {
     if (!on) return;
     const w = W(), hgt = H(), s = c.size * unit();
     const cx = Math.max(s / 2, Math.min(w - s / 2, c.x * w));
-    const cy = Math.max(s / 2, Math.min(hgt - s / 2, c.y * hgt));
+    const cy = Math.max(s / 2, Math.min(hgt - s / 2, yPx(c.y)));
     const pointsLeft = cx < w / 2;
     const aw = Math.max(60, Math.min(120, s * 1.4));
     const ah = aw * 11 / 14;
@@ -272,7 +280,7 @@ const MetalSlugTouch = (() => {
       // (and widen the page) while a rotation is in progress.
       const w = W(), hgt = H();
       el.style.left = Math.max(0, Math.min(w - s, c.x * w - s / 2)) + 'px';
-      el.style.top = Math.max(0, Math.min(hgt - s, c.y * hgt - s / 2)) + 'px';
+      el.style.top = Math.max(0, Math.min(hgt - s, yPx(c.y) - s / 2)) + 'px';
       el.style.fontSize = (s * 0.2) + 'px';
       el.style.display = c.visible ? '' : 'none';
       el.classList.toggle('tc-selected', editing && c.id === selectedId);
@@ -288,7 +296,7 @@ const MetalSlugTouch = (() => {
       if (!c.visible) continue;
       const r = c.size * u / 2 * slop;
       const dx = (x - c.x * W()) / r;
-      const dy = (y - c.y * H()) / r;
+      const dy = (y - yPx(c.y)) / r;
       const d = dx * dx + dy * dy;
       if (d <= 1 && d < bestD) { best = c; bestD = d; }
     }
@@ -339,7 +347,7 @@ const MetalSlugTouch = (() => {
   function updateStick(p, c, x, y) {
     const r = c.size * unit() / 2;
     let dx = (x - c.x * W()) / r;
-    let dy = (y - c.y * H()) / r;
+    let dy = (y - yPx(c.y)) / r;
     const len = Math.hypot(dx, dy);
     if (len > 1) { dx /= len; dy /= len; }
     p.ax = Math.abs(dx) < 0.08 ? 0 : dx;
@@ -356,7 +364,7 @@ const MetalSlugTouch = (() => {
 
   function updateDpad(p, c, x, y) {
     const dx = x - c.x * W();
-    const dy = y - c.y * H();
+    const dy = y - yPx(c.y);
     const dead = c.size * unit() * 0.1;
     let dirs = 0;
     if (Math.hypot(dx, dy) > dead) {
@@ -419,7 +427,7 @@ const MetalSlugTouch = (() => {
     selectedId = c ? c.id : null;
     if (c) {
       drag = { pointerId: e.pointerId, id: c.id,
-               ox: lx(e) - c.x * W(), oy: ly(e) - c.y * H() };
+               ox: lx(e) - c.x * W(), oy: ly(e) - yPx(c.y) };
       try { layer.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     }
     layout();
@@ -432,7 +440,8 @@ const MetalSlugTouch = (() => {
     const key = drag.id;
     const place = layouts[o][key];
     place.x = Math.min(0.98, Math.max(0.02, (lx(e) - drag.ox) / W()));
-    place.y = Math.min(0.98, Math.max(0.02, (ly(e) - drag.oy) / H()));
+    // Anywhere on screen: above the area under the game too (negative y).
+    place.y = Math.min(0.98, Math.max((0.02 * H() - top0()) / RH(), (ly(e) - drag.oy - top0()) / RH()));
     layout();
   }
   function editUp(e) {
@@ -545,7 +554,7 @@ const MetalSlugTouch = (() => {
   }
 
   return {
-    init, show, guide, deselect, setEditing, updateSelected, setSetting, reset, release, showAll, orientation, layout,
+    init, show, guide, deselect, setRegionTop, setEditing, updateSelected, setSetting, reset, release, showAll, orientation, layout,
     get settings() { return settings; },
     get shown() { return shown; },
     get editing() { return editing; },

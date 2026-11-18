@@ -170,6 +170,9 @@ function touchInput(slot, player) {
   };
 }
 touch.init($('touch-layer'), touchInput(0, 0));
+/* Portrait: the free area under the game starts at --game-bottom (0 when
+ * the game is stretched or the screen is landscape). */
+touch.setRegionTop(() => $('game-bottom-probe').offsetHeight);
 duoTouch[0].init($('duo-touch-1'), touchInput(1, 0));
 duoTouch[1].init($('duo-touch-2'), touchInput(2, 1));
 function clearInput() {
@@ -230,7 +233,17 @@ $('touch-toggle').addEventListener('click', () => {
 /* ---- touch editor: the single pad, or both halves at once in split screen ---- */
 const editLabels = { dpad: 'Cruceta', stick: 'Stick' };
 const editPads = () => (duo ? duoTouch : [touch]);
+let menuSelected = false;
 function paintEditor() {
+  if (menuSelected) {
+    $('ed-selected').disabled = false;
+    $('ed-name').textContent = 'Menú';
+    $('ed-size').value = menuPlace().s * 0.12;
+    $('ed-hide').disabled = true;
+    menuButton.classList.add('menu-selected');
+    return;
+  }
+  menuButton.classList.remove('menu-selected');
   const selected = activeTouch.selected;
   const owner = duo ? (activeTouch === duoTouch[1] ? 'J2 · ' : 'J1 · ') : '';
   $('ed-selected').disabled = !selected;
@@ -247,6 +260,7 @@ function editAll() {
     pad.setEditing(true, {
       onSelect: (selected) => {
         if (selected) activeTouch = pad;
+        menuSelected = false;
         for (const other of editPads()) if (other !== pad) other.deselect();
         paintEditor();
       },
@@ -269,6 +283,8 @@ function openEditor() {
     ? 'Toca cualquier control del J1 o del J2 y arrástralo. Opacidad, dirección y vibración se aplican a los dos.'
     : 'Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.';
   document.body.classList.toggle('duo-editing', duo);
+  document.body.classList.add('touch-editing');
+  menuSelected = false;
   centerEditor();
   editor.hidden = false;
   paintEditor();
@@ -302,7 +318,10 @@ function draggablePanel(panel, handle) {
   });
 }
 draggablePanel(editor, $('ed-handle'));
-$('ed-size').addEventListener('input', (event) => activeTouch.updateSelected({ size: Number(event.target.value) }));
+$('ed-size').addEventListener('input', (event) => {
+  if (menuSelected) setMenuPlace({ s: Number(event.target.value) / 0.12 });
+  else activeTouch.updateSelected({ size: Number(event.target.value) });
+});
 $('ed-hide').addEventListener('click', () => {
   if (['dpad', 'stick'].includes(activeTouch.selected?.id)) return;
   activeTouch.updateSelected({ visible: false });
@@ -323,6 +342,8 @@ $('ed-haptics').addEventListener('change', (event) => {
 });
 $('ed-showall').addEventListener('click', () => { for (const pad of editPads()) pad.showAll(); paintEditor(); });
 $('ed-reset').addEventListener('click', () => {
+  resetMenuPlace();
+  menuSelected = false;
   for (const pad of editPads()) pad.reset();
   editAll();
   paintEditor();
@@ -331,11 +352,74 @@ $('ed-done').addEventListener('click', () => {
   for (const pad of editPads()) pad.setEditing(false);
   engine._web_pause(false);
   editor.hidden = true;
-  document.body.classList.remove('duo-editing');
+  menuSelected = false;
+  menuButton.classList.remove('menu-selected');
+  document.body.classList.remove('duo-editing', 'touch-editing');
   showTouch(previousTouch);
   paintGuide();
   menuButton.focus({ preventScroll: true });
 });
+
+/* ---- menu button position (moved from the touch editor) ----
+ * Stored per layout (landscape, portrait, split screen) as the centre in
+ * fractions of the viewport plus a scale; no entry = the default place. */
+const MENU_KEY = 'mslug.menu.v1';
+let menuPlaces = {};
+try { menuPlaces = JSON.parse(localStorage.getItem(MENU_KEY)) || {}; } catch { menuPlaces = {}; }
+const menuLayout = () => (duo ? 'duo' : matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape');
+const menuPlace = () => ({ s: 1, ...menuPlaces[menuLayout()] });
+function applyMenuPlace() {
+  const place = menuPlaces[menuLayout()];
+  const style = menuButton.style;
+  /* "scale" is separate from the CSS transforms that place the button. */
+  style.scale = place?.s && place.s !== 1 ? String(place.s) : '';
+  if (!place || place.x === undefined) {
+    style.left = style.top = style.right = style.bottom = style.transform = '';
+    return;
+  }
+  style.left = place.x * 100 + 'vw';
+  style.top = place.y * 100 + 'vh';
+  style.right = style.bottom = 'auto';
+  style.transform = 'translate(-50%, -50%)';
+}
+function setMenuPlace(changes) {
+  const next = { ...menuPlace(), ...changes };
+  next.s = Math.max(0.7, Math.min(2.2, next.s || 1));
+  if (next.x !== undefined) {
+    next.x = Math.max(0.02, Math.min(0.98, next.x));
+    next.y = Math.max(0.02, Math.min(0.98, next.y));
+  }
+  menuPlaces[menuLayout()] = next;
+  remember(MENU_KEY, JSON.stringify(menuPlaces));
+  applyMenuPlace();
+}
+function resetMenuPlace() {
+  delete menuPlaces[menuLayout()];
+  remember(MENU_KEY, JSON.stringify(menuPlaces));
+  applyMenuPlace();
+}
+for (const event of ['resize', 'orientationchange']) window.addEventListener(event, () => setTimeout(applyMenuPlace, 50));
+applyMenuPlace();
+{
+  let grab = null;
+  menuButton.addEventListener('pointerdown', (event) => {
+    if (!document.body.classList.contains('touch-editing')) return;
+    event.preventDefault();
+    menuSelected = true;
+    for (const pad of editPads()) pad.deselect();
+    paintEditor();
+    const rect = menuButton.getBoundingClientRect();
+    grab = { id: event.pointerId, dx: event.clientX - (rect.left + rect.width / 2), dy: event.clientY - (rect.top + rect.height / 2) };
+    try { menuButton.setPointerCapture(event.pointerId); } catch { /* ignore */ }
+  });
+  menuButton.addEventListener('pointermove', (event) => {
+    if (!grab || grab.id !== event.pointerId) return;
+    setMenuPlace({ x: (event.clientX - grab.dx) / innerWidth, y: (event.clientY - grab.dy) / innerHeight });
+  });
+  const drop = (event) => { if (grab && grab.id === event.pointerId) grab = null; };
+  menuButton.addEventListener('pointerup', drop);
+  menuButton.addEventListener('pointercancel', drop);
+}
 
 /* ---- game screen position and size (one setting per orientation) ----
  * Offsets are fractions of the viewport so they survive resizes; the frame
@@ -553,6 +637,7 @@ function startDuo() {
   engine.duoFrame = drawDuo;
   engine._web_duo(1);
   fitDuo();
+  applyMenuPlace();
 }
 
 /* ---- launcher choices ---- */

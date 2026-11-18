@@ -327,7 +327,10 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 #menu-btn:hover:not(:disabled), #menu-btn:focus-visible { opacity: 1; background: #0d0f0be6; border-color: var(--accent); }
 #menu-btn:active:not(:disabled) { transform: translateX(-50%) scale(.94); }
 .menu-ico { width: 20px; height: 20px; fill: none; stroke: var(--accent-2); stroke-linecap: round; stroke-linejoin: round; }
-#touch-layer.tc-editing + #menu-btn { visibility: hidden; }
+/* While the touch pad is edited the menu button can be dragged too. */
+body.touch-editing #menu-btn { visibility: visible; opacity: 1; cursor: move; touch-action: none; outline: 2px dashed rgba(255, 255, 255, .5); outline-offset: 3px; }
+body.touch-editing #menu-btn.menu-selected { outline: 3px solid var(--accent); }
+#game-bottom-probe { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none; }
 
 /* ---------- dialogs (pause menu and keyboard) ---------- */
 #game-menu, #keyboard-dialog {
@@ -453,13 +456,13 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 .duo-screen { position: absolute; inset: 24px 0 auto; height: calc(64% - 24px); display: grid; place-items: center; padding-inline: calc(4px + var(--safe-l)) calc(4px + var(--safe-r)); }
 /* Each copy of the game gets the same frame, sized to fit its area. */
 .duo-screen { container-type: size; }
-.duo-screen canvas {
-  box-sizing: content-box; aspect-ratio: auto; image-rendering: pixelated; background: #000;
+.duo-frame {
+  position: relative; box-sizing: content-box;
+  width: calc(100% - 2 * var(--frame-w));
   width: min(100cqw - 2 * var(--frame-w), (100cqh - 2 * var(--frame-w)) * 19 / 14);
-  height: auto;
   border: var(--frame-w) solid transparent;
-  border-image: url(frame.png) 4 / var(--frame-w) stretch;
 }
+.duo-frame canvas { display: block; width: 100%; height: auto; aspect-ratio: 19 / 14; image-rendering: pixelated; background: #000; }
 .duo-tag { position: absolute; left: 50%; bottom: calc(6px + var(--safe-b)); transform: translateX(-50%); font-size: .7rem; font-weight: 800; letter-spacing: .15em; color: var(--accent); opacity: .55; pointer-events: none; }
 .duo-p2 .duo-tag { bottom: calc(6px + var(--safe-t)); }
 .duo-touch { position: absolute; inset: 0; z-index: 2; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -475,7 +478,6 @@ body.duo-playing main { width: 100%; max-width: none; padding: 0; }
 body.duo-playing #menu-btn { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 38px; min-height: 38px; }
 body.duo-playing #menu-btn:active:not(:disabled) { transform: translate(-50%, -50%) scale(.94); }
 body.duo-playing #game-status { position: fixed; z-index: 12; top: 50%; inset-inline: 1rem; transform: translateY(-50%); margin: 0; }
-body.duo-editing #menu-btn { visibility: hidden; }
 
 /* ---------- segmented choices (built from <select data-seg> by app.mjs) ---------- */
 .seg-source { display: none !important; }
@@ -557,7 +559,7 @@ body.screen-editing #menu-btn { visibility: hidden; }
 /* ---------- portrait: credit, start and menu go below the game ---------- */
 :root { --game-bottom: calc(var(--safe-t) + (min(100vw - var(--safe-l) - var(--safe-r), var(--fit-width)) - 2 * var(--frame-w)) * 14 / 19 + 2 * var(--frame-w)); }
 @media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
-  body.playing:not(.stretched):not(.duo-playing) #touch-layer { top: var(--game-bottom); }
+  body.playing:not(.stretched):not(.duo-playing) #game-bottom-probe { height: var(--game-bottom); }
   body.touch-playing:not(.stretched):not(.duo-playing) #menu-btn {
     top: calc(var(--game-bottom) + (100dvh - var(--game-bottom)) * .08 - 17px);
   }
@@ -570,8 +572,15 @@ body.screen-editing #menu-btn { visibility: hidden; }
   --frame-w: clamp(6px, 1.3vmin, 12px);
   --fit-width: calc((100dvh - 2 * var(--frame-w)) * 19 / 14 + 2 * var(--frame-w));
 }
-body.playing:not(.stretched) .game-display {
+body.playing:not(.stretched) .game-display { border: var(--frame-w) solid transparent; }
+/* The frame is drawn by its own layer above the canvas: Safari composites
+ * the canvas separately and could paint it over the element's own border.
+ * media/frame.png is the 9x9 nine-slice at 4x (16px corners). */
+body.playing:not(.stretched) .game-display::after, .duo-frame::after {
+  content: ''; position: absolute; z-index: 2; pointer-events: none;
+  inset: calc(-1 * var(--frame-w));
   border: var(--frame-w) solid transparent;
-  border-image: url(frame.png) 4 / var(--frame-w) stretch;
+  border-image: url(frame.png) 16 / var(--frame-w) stretch;
   image-rendering: pixelated;
+  -webkit-transform: translateZ(0); transform: translateZ(0);
 }

@@ -178,14 +178,15 @@
         </div>
       </div>
       <div id="touch-layer" class="tc-hidden" aria-label="Mando táctil"></div>
+      <div id="game-bottom-probe" aria-hidden="true"></div>
       <div id="duo" aria-label="Pantalla dividida para dos jugadores" hidden>
         <div class="duo-half duo-p2" aria-label="Jugador 2">
-          <div class="duo-screen"><canvas id="duo-canvas-2" width="304" height="224" aria-hidden="true"></canvas></div>
+          <div class="duo-screen"><div class="duo-frame"><canvas id="duo-canvas-2" width="304" height="224" aria-hidden="true"></canvas></div></div>
           <span class="duo-tag" aria-hidden="true">J2</span>
           <div id="duo-touch-2" class="duo-touch tc-hidden" aria-label="Mando táctil del jugador 2"></div>
         </div>
         <div class="duo-half duo-p1" aria-label="Jugador 1">
-          <div class="duo-screen"><canvas id="duo-canvas-1" width="304" height="224" aria-hidden="true"></canvas></div>
+          <div class="duo-screen"><div class="duo-frame"><canvas id="duo-canvas-1" width="304" height="224" aria-hidden="true"></canvas></div></div>
           <span class="duo-tag" aria-hidden="true">J1</span>
           <div id="duo-touch-1" class="duo-touch tc-hidden" aria-label="Mando táctil del jugador 1"></div>
         </div>
@@ -253,7 +254,7 @@
           <strong id="ed-title">Ajustar mando táctil</strong>
           <span class="ed-move-hint">Arrastra para mover</span>
         </div>
-        <p class="hint" id="ed-hint">Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.</p>
+        <p class="hint" id="ed-hint">Toca un control (también el botón de menú) para seleccionarlo y arrástralo a cualquier parte. Cada orientación conserva su propio diseño.</p>
         <fieldset class="ed-row" id="ed-selected" disabled>
           <span id="ed-name">—</span>
           <label>Tamaño <input type="range" id="ed-size" min="0.06" max="0.6" step="0.01"></label>
