@@ -3,6 +3,7 @@
 static int web_dash_enabled, web_blood_mode;
 static int web_turbo_enabled, web_mirror_enabled;
 static unsigned web_turbo_phase;
+static unsigned web_turbo_phase2;   /* player 2; not part of save states */
 static unsigned web_previous_dash, web_dash_ticks, web_dash_cooldown;
 static int web_dash_direction = 1;
 static const uint32_t dash_immediates[] = {
@@ -70,7 +71,7 @@ static void dash(ng_input_t *in, unsigned pressed) {
     web_previous_dash = pressed;
 }
 EMSCRIPTEN_KEEPALIVE void web_extra_options(int turbo, int mirror) {
-    web_turbo_enabled = !!turbo; web_mirror_enabled = !!mirror; web_turbo_phase = 0;
+    web_turbo_enabled = !!turbo; web_mirror_enabled = !!mirror; web_turbo_phase = web_turbo_phase2 = 0;
 }
 EMSCRIPTEN_KEEPALIVE int web_turbo_get(void) { return web_turbo_enabled; }
 EMSCRIPTEN_KEEPALIVE int web_mirror_get(void) { return web_mirror_enabled; }
@@ -84,11 +85,17 @@ static uint8_t mirror_directions(uint8_t buttons) {
     return (buttons & ~(NG_LEFT | NG_RIGHT)) |
         ((buttons & NG_LEFT) ? NG_RIGHT : 0) | ((buttons & NG_RIGHT) ? NG_LEFT : 0);
 }
+/* Turbo fire: A held fires three frames on, three off (per player). */
+static uint8_t turbo_fire(uint8_t buttons, unsigned *phase) {
+    if (web_turbo_enabled && mission_active() && (buttons & NG_A)) {
+        if (*phase % 6 >= 3) buttons &= (uint8_t)~NG_A;
+        *phase = (*phase + 1) % 6;
+    } else *phase = 0;
+    return buttons;
+}
 static void extra_input(ng_input_t *in) {
     if (web_mirror_active()) { in->p1 = mirror_directions(in->p1); in->p2 = mirror_directions(in->p2); }
-    if (web_turbo_enabled && mission_active() && (in->p1 & NG_A)) {
-        if (web_turbo_phase % 6 >= 3) in->p1 &= (uint8_t)~NG_A;
-        web_turbo_phase = (web_turbo_phase + 1) % 6;
-    } else web_turbo_phase = 0;
+    in->p1 = turbo_fire(in->p1, &web_turbo_phase);
+    in->p2 = turbo_fire(in->p2, &web_turbo_phase2);
 }
 #endif

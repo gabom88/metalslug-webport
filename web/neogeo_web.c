@@ -216,6 +216,8 @@ static void power_on(void) {
 
 static int web_ready, web_paused, web_double_jump, web_level, web_start_ticks;
 static unsigned web_previous_jump, web_extra_used;
+/* Player 2's jump flags are not part of save states, so older saves keep loading. */
+static unsigned web_previous_jump2, web_extra_used2;
 static uint8_t *web_prom;
 static uint8_t web_state_buffer[1024 * 1024];
 static double web_next;
@@ -240,6 +242,20 @@ EMSCRIPTEN_KEEPALIVE void web_pause(int paused) {
 }
 EMSCRIPTEN_KEEPALIVE int web_double_jump_enabled(void) { return web_double_jump; }
 EMSCRIPTEN_KEEPALIVE int web_is_ready(void) { return web_ready; }
+/* Restart: power the board on again with the current options (mission,
+ * mods). The frame loop then skips the BIOS boot like the first start. */
+EMSCRIPTEN_KEEPALIVE void web_reset(void) {
+    io_reset(1);
+    power_on();
+    web_ready = 0;
+    web_next = 0;
+    web_start_ticks = 0;
+    web_previous_jump = web_extra_used = web_previous_jump2 = web_extra_used2 = 0;
+    web_turbo_phase = web_turbo_phase2 = 0;
+    web_previous_dash = web_dash_ticks = web_dash_cooldown = 0;
+    apply_dash_speed();
+    window_flush_audio();
+}
 static void transfer_state(web_state_t *s) {
     FIELD(ng_frame_start);
     FIELD(s_fb);
@@ -293,6 +309,7 @@ EMSCRIPTEN_KEEPALIVE int web_load_state(int size) {
     apply_level(web_level);
     apply_blood_palette();
     apply_dash_speed();
+    web_previous_jump2 = web_extra_used2 = web_turbo_phase2 = 0;
     window_flush_audio();
     web_next = 0;
     return !s.failed;
@@ -303,19 +320,25 @@ static int at_title(void) {
         if (lspc_vram[0x70fa+i*32] != (0x2300 | (uint8_t)text[i])) return 0;
     return 1;
 }
-static void double_jump(ng_input_t *in) {
-    const uint32_t player = 0x100440;
+/* Player objects: P1 at $100440, P2 right after it at $1004E0 (same layout). */
+static void double_jump_player(uint32_t player, unsigned pressed, unsigned *previous, unsigned *used) {
     uint32_t handler = ng_r32(player);
     int airborne = handler >= 0x36914 && handler <= 0x36c8a;
-    unsigned pressed = !!(in->p1 & NG_B);
-    if (!airborne) web_extra_used = 0;
-    if (web_double_jump && airborne && pressed && !web_previous_jump && !web_extra_used) {
+    if (!airborne) *used = 0;
+    if (web_double_jump && airborne && pressed && !*previous && !*used) {
         ng_w16(player+0x2a, 0x9cd);
         ng_w16(player+0x2e, 0xff3f);
         ng_w8(player+0x90, 5);
-        web_extra_used = 1;
+        *used = 1;
     }
-    web_previous_jump = pressed;
+    *previous = pressed;
+}
+static void double_jump(ng_input_t *in) {
+    double_jump_player(0x100440, !!(in->p1 & NG_B), &web_previous_jump, &web_extra_used);
+    /* BIOS player 2 status 1 = playing; otherwise $1004E0 is not a player. */
+    if (ng_r8(0x10fdb7) == 1)
+        double_jump_player(0x1004e0, !!(in->p2 & NG_B), &web_previous_jump2, &web_extra_used2);
+    else web_previous_jump2 = web_extra_used2 = 0;
 }
 
 /* The Neo Geo clock is independent of the display refresh rate. */

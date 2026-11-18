@@ -3,6 +3,68 @@ import { loadGameData } from './game-data.mjs';
 import { keyboardControls } from './keyboard.mjs';
 
 const $ = (id) => document.getElementById(id);
+
+/* ---- button groups built from <select data-seg> ----
+ * The select stays the source of truth (hidden), so .value and "change"
+ * keep working; setting .value from code repaints the buttons. An option
+ * marked data-seg-none gets no button: tapping the chosen button again
+ * returns to it (mission: none chosen = title screen). */
+const selectValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+function segmented(select) {
+  const group = document.createElement('div');
+  group.className = 'seg';
+  group.setAttribute('role', 'radiogroup');
+  const label = document.getElementById(select.id + '-label');
+  if (label) group.setAttribute('aria-labelledby', label.id);
+  if (select.hasAttribute('aria-describedby')) group.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
+  const none = select.querySelector('option[data-seg-none]');
+  const choose = (value) => {
+    if (value === selectValue.get.call(select)) return;
+    select.value = value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const buttons = Array.from(select.options).filter((option) => !option.hasAttribute('data-seg-none')).map((option) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('role', 'radio');
+    button.dataset.value = option.value;
+    button.textContent = option.dataset.short || option.textContent;
+    if (option.dataset.short) button.setAttribute('aria-label', option.textContent);
+    button.addEventListener('click', () => {
+      choose(none && selectValue.get.call(select) === option.value ? none.value : option.value);
+    });
+    group.append(button);
+    return button;
+  });
+  function sync() {
+    const value = selectValue.get.call(select);
+    const anyChecked = buttons.some((button) => button.dataset.value === value);
+    buttons.forEach((button, index) => {
+      const checked = button.dataset.value === value;
+      button.setAttribute('aria-checked', String(checked));
+      button.tabIndex = checked || (!anyChecked && index === 0) ? 0 : -1;
+    });
+  }
+  group.addEventListener('keydown', (event) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const current = buttons.indexOf(document.activeElement);
+    const next = buttons[(current + step + buttons.length) % buttons.length];
+    next.focus();
+    choose(next.dataset.value);
+  });
+  Object.defineProperty(select, 'value', {
+    configurable: true,
+    get() { return selectValue.get.call(this); },
+    set(value) { selectValue.set.call(this, value); sync(); },
+  });
+  select.addEventListener('change', sync);
+  select.classList.add('seg-source');
+  select.after(group);
+  sync();
+}
+document.querySelectorAll('select[data-seg]').forEach(segmented);
 const canvas = $('canvas');
 const play = $('play');
 const status = $('status');
@@ -165,62 +227,144 @@ $('touch-toggle').addEventListener('click', () => {
   closeMenu();
 });
 
-/* ---- touch editor (single pad, or one player's half) ---- */
+/* ---- touch editor: the single pad, or both halves at once in split screen ---- */
 const editLabels = { dpad: 'Cruceta', stick: 'Stick' };
+const editPads = () => (duo ? duoTouch : [touch]);
 function paintEditor() {
   const selected = activeTouch.selected;
+  const owner = duo ? (activeTouch === duoTouch[1] ? 'J2 · ' : 'J1 · ') : '';
   $('ed-selected').disabled = !selected;
-  $('ed-name').textContent = selected ? (editLabels[selected.id] || selected.label) : '—';
+  $('ed-name').textContent = selected ? owner + (editLabels[selected.id] || selected.label) : '—';
   if (selected) $('ed-size').value = selected.size;
   $('ed-hide').disabled = ['dpad', 'stick'].includes(selected?.id);
   $('ed-opacity').value = activeTouch.settings.opacity;
   $('ed-mode').value = activeTouch.settings.mode;
   $('ed-haptics').checked = activeTouch.settings.haptics;
 }
+/* Picking a control in one half drops the selection in the other. */
+function editAll() {
+  for (const pad of editPads()) {
+    pad.setEditing(true, {
+      onSelect: (selected) => {
+        if (selected) activeTouch = pad;
+        for (const other of editPads()) if (other !== pad) other.deselect();
+        paintEditor();
+      },
+    });
+  }
+}
+const editor = $('touch-editor');
+function centerEditor() {
+  editor.style.left = editor.style.top = editor.style.transform = '';
+}
 let previousTouch = false;
-function openEditor(pad, player) {
+function openEditor() {
   closeMenu();
   previousTouch = touchShown();
   showTouch(true);
-  activeTouch = pad;
+  activeTouch = editPads()[0];
   engine._web_pause(true);
-  pad.setEditing(true, { onSelect: paintEditor });
-  const editor = $('touch-editor');
-  editor.classList.toggle('for-p2', player === 1);
-  editor.setAttribute('aria-label', duo ? 'Configurar mando táctil del jugador ' + (player + 1) : 'Configurar mando táctil');
+  editAll();
+  $('ed-hint').textContent = duo
+    ? 'Toca cualquier control del J1 o del J2 y arrástralo. Opacidad, dirección y vibración se aplican a los dos.'
+    : 'Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.';
   document.body.classList.toggle('duo-editing', duo);
+  centerEditor();
   editor.hidden = false;
   paintEditor();
   $('ed-done').focus({ preventScroll: true });
 }
-$('touch-config').addEventListener('click', () => openEditor(touch, 0));
-$('touch-config-1').addEventListener('click', () => openEditor(duoTouch[0], 0));
-$('touch-config-2').addEventListener('click', () => openEditor(duoTouch[1], 1));
+$('touch-config').addEventListener('click', openEditor);
+/* Drag the panel by its title bar, kept inside the screen. */
+{
+  let grab = null;
+  const handle = $('ed-handle');
+  handle.addEventListener('pointerdown', (event) => {
+    const rect = editor.getBoundingClientRect();
+    grab = { id: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+    editor.style.transform = 'none';
+    editor.style.left = rect.left + 'px';
+    editor.style.top = rect.top + 'px';
+    try { handle.setPointerCapture(event.pointerId); } catch { /* ignore */ }
+    event.preventDefault();
+  });
+  handle.addEventListener('pointermove', (event) => {
+    if (!grab || grab.id !== event.pointerId) return;
+    const rect = editor.getBoundingClientRect();
+    const left = Math.max(0, Math.min(innerWidth - rect.width, event.clientX - grab.dx));
+    const top = Math.max(0, Math.min(innerHeight - rect.height, event.clientY - grab.dy));
+    editor.style.left = left + 'px';
+    editor.style.top = top + 'px';
+  });
+  const drop = (event) => { if (grab && grab.id === event.pointerId) grab = null; };
+  handle.addEventListener('pointerup', drop);
+  handle.addEventListener('pointercancel', drop);
+  window.addEventListener('resize', () => { if (!editor.hidden && editor.style.transform === 'none') centerEditor(); });
+}
 $('ed-size').addEventListener('input', (event) => activeTouch.updateSelected({ size: Number(event.target.value) }));
 $('ed-hide').addEventListener('click', () => {
   if (['dpad', 'stick'].includes(activeTouch.selected?.id)) return;
   activeTouch.updateSelected({ visible: false });
-  activeTouch.setEditing(true);
+  editAll();
   paintEditor();
 });
-$('ed-opacity').addEventListener('input', (event) => activeTouch.setSetting('opacity', Number(event.target.value)));
+$('ed-opacity').addEventListener('input', (event) => {
+  for (const pad of editPads()) pad.setSetting('opacity', Number(event.target.value));
+});
 $('ed-mode').addEventListener('change', (event) => {
   /* Cross or stick is shared by the single pad and both split-screen pads. */
   for (const pad of [touch, ...duoTouch]) pad.setSetting('mode', event.target.value);
-  activeTouch.setEditing(true);
+  editAll();
   paintEditor();
 });
-$('ed-haptics').addEventListener('change', (event) => activeTouch.setSetting('haptics', event.target.checked));
-$('ed-showall').addEventListener('click', () => { activeTouch.showAll(); paintEditor(); });
-$('ed-reset').addEventListener('click', () => { activeTouch.reset(); activeTouch.setEditing(true); paintEditor(); });
+$('ed-haptics').addEventListener('change', (event) => {
+  for (const pad of editPads()) pad.setSetting('haptics', event.target.checked);
+});
+$('ed-showall').addEventListener('click', () => { for (const pad of editPads()) pad.showAll(); paintEditor(); });
+$('ed-reset').addEventListener('click', () => {
+  for (const pad of editPads()) pad.reset();
+  editAll();
+  paintEditor();
+});
 $('ed-done').addEventListener('click', () => {
-  activeTouch.setEditing(false);
+  for (const pad of editPads()) pad.setEditing(false);
   engine._web_pause(false);
-  $('touch-editor').hidden = true;
+  editor.hidden = true;
   document.body.classList.remove('duo-editing');
   showTouch(previousTouch);
   paintGuide();
   menuButton.focus({ preventScroll: true });
+});
+
+/* ---- restart, confirmed with an in-game panel (not the browser's) ---- */
+const restartBox = $('restart-confirm');
+function closeRestart(focusButton) {
+  restartBox.hidden = true;
+  if (focusButton) $('restart').focus({ preventScroll: true });
+}
+$('restart').addEventListener('click', () => {
+  restartBox.hidden = false;
+  $('restart-cancel').focus({ preventScroll: true });
+});
+$('restart-cancel').addEventListener('click', () => closeRestart(true));
+restartBox.addEventListener('click', (event) => { if (event.target === restartBox) closeRestart(true); });
+menu.addEventListener('cancel', (event) => {
+  if (restartBox.hidden) return;
+  event.preventDefault();
+  closeRestart(true);
+});
+menu.addEventListener('close', () => closeRestart(false));
+$('restart-ok').addEventListener('click', async () => {
+  closeRestart(false);
+  closeMenu();
+  clearInput();
+  menuButton.disabled = true;
+  gameStatus.textContent = 'Reiniciando…';
+  engine._web_reset();
+  while (!engine._web_is_ready()) await new Promise(requestAnimationFrame);
+  menuButton.disabled = false;
+  gameStatus.textContent = '';
+  canvas.focus({ preventScroll: true });
 });
 
 $('back').addEventListener('click', () => location.reload());
@@ -291,8 +435,6 @@ function startDuo() {
   duo = true;
   document.body.classList.add('duo-playing');
   duoBox.hidden = false;
-  $('touch-config').hidden = true;
-  $('touch-config-1').hidden = $('touch-config-2').hidden = false;
   /* Same direction control (cross or stick) as in single-player mode. */
   for (const pad of duoTouch) pad.setSetting('mode', touch.settings.mode);
   engine.duoFrame = drawDuo;
@@ -303,14 +445,14 @@ function startDuo() {
 /* ---- launcher choices ---- */
 function remember(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } }
 function recall(key) { try { return localStorage.getItem(key); } catch { return null; } }
-$('players').value = recall('mslug.players') === '2' ? '2' : '1';
-$('players').addEventListener('change', (event) => remember('mslug.players', event.target.value));
+$('split-screen').checked = recall('mslug.players') === '2';
+$('split-screen').addEventListener('change', (event) => remember('mslug.players', event.target.checked ? '2' : '1'));
 $('autoload').checked = recall('mslug.autoload') !== 'false';
 $('autoload').addEventListener('change', (event) => remember('mslug.autoload', String(event.target.checked)));
 
 let saves;
 play.addEventListener('click', async () => {
-  const twoPlayers = $('players').value === '2';
+  const twoPlayers = $('split-screen').checked;
   const coarse = matchMedia('(pointer: coarse)').matches;
   /* Fullscreen and the orientation lock need this click (user gesture). */
   if (twoPlayers && coarse && document.fullscreenEnabled) {

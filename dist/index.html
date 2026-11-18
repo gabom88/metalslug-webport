@@ -39,6 +39,7 @@
       <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3"/><path d="M12.8 8.8 10.5 12.4h3l-2.3 3.4"/></symbol>
       <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.25 1.75v12.5M5 4h8.75M5 8h5.5M5 12h7.25" stroke-width="1.3"/></symbol>
       <symbol id="i-duo" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 12h12"/><path d="M10 6.5h4M10 17.5h4"/></symbol>
+      <symbol id="i-restart" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.7"/><path d="M20 4v4.7h-4.7"/></symbol>
       <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
     </defs>
   </svg>
@@ -51,7 +52,7 @@
             <span class="cover-glow" aria-hidden="true"></span>
             <img class="cover-art" src="character.png" width="1920" height="2223" alt="Personaje de Metal Slug">
           </div>
-          <h1><img src="logo.png" width="278" height="160" alt="Metal Slug"></h1>
+          <h1><img src="logo.png" width="276" height="160" alt="Metal Slug"></h1>
           <p class="tagline">El clásico arcade de Neo Geo, directo en tu navegador.</p>
         </header>
         <div id="setup" class="launch-actions">
@@ -75,45 +76,43 @@
         </div>
         <div class="settings-fields">
           <div class="setting-field">
-            <label for="mission"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg> Nivel inicial</label>
-            <select id="mission">
-              <option value="0">Pantalla de título</option>
-              <option value="1">Misión 1</option><option value="2">Misión 2</option>
-              <option value="3">Misión 3</option><option value="4">Misión 4</option>
-              <option value="5">Misión 5</option><option value="6">Misión final</option>
+            <label id="mission-label"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg> Empezar en la misión</label>
+            <select id="mission" data-seg aria-describedby="mission-help">
+              <option value="0" data-seg-none>Pantalla de título</option>
+              <option value="1" data-short="1">Misión 1</option><option value="2" data-short="2">Misión 2</option>
+              <option value="3" data-short="3">Misión 3</option><option value="4" data-short="4">Misión 4</option>
+              <option value="5" data-short="5">Misión 5</option><option value="6" data-short="6">Misión final</option>
             </select>
+            <p id="mission-help" class="field-help">Sin ninguna marcada empiezas en la pantalla de título. Toca la misión marcada para quitarla.</p>
           </div>
           <div class="setting-field">
-            <label for="display-mode" class="display-label"><svg class="ico" aria-hidden="true"><use href="#i-screen"/></svg> Imagen</label>
-            <select id="display-mode">
-              <option value="fit">Conservar proporción</option>
-              <option value="stretch">Estirar a toda la pantalla</option>
+            <label id="display-mode-label" class="display-label"><svg class="ico" aria-hidden="true"><use href="#i-screen"/></svg> Imagen</label>
+            <select id="display-mode" data-seg aria-describedby="display-mode-help">
+              <option value="fit" data-short="Original">Conservar proporción</option>
+              <option value="stretch" data-short="Estirar">Estirar a toda la pantalla</option>
             </select>
+            <p id="display-mode-help" class="field-help">Original conserva la proporción del arcade; Estirar llena toda la pantalla.</p>
           </div>
           <div class="setting-field">
-            <label for="players"><svg class="ico" aria-hidden="true"><use href="#i-duo"/></svg> Jugadores</label>
-            <select id="players" aria-describedby="players-help">
-              <option value="1">1 jugador</option>
-              <option value="2">2 jugadores · pantalla dividida</option>
-            </select>
-            <p id="players-help" class="field-help">Pantalla dividida: el móvil o la tablet en vertical, cada jugador sostiene su mitad con su propio mando táctil.</p>
+            <label class="switch-row toggle-field"><span><svg class="ico" aria-hidden="true"><use href="#i-duo"/></svg> Pantalla dividida multiplayer</span><input id="split-screen" type="checkbox" role="switch" aria-describedby="split-screen-help"></label>
+            <p id="split-screen-help" class="field-help">Dos jugadores en un móvil o tablet en vertical, cada uno con su mitad.</p>
           </div>
           <div class="setting-field">
-            <label class="switch-row autoload-row"><span><svg class="ico" aria-hidden="true"><use href="#i-load"/></svg> Continuar partida guardada</span><input id="autoload" type="checkbox" role="switch" checked aria-describedby="autoload-help"></label>
+            <label class="switch-row toggle-field"><span><svg class="ico" aria-hidden="true"><use href="#i-load"/></svg> Continuar partida guardada</span><input id="autoload" type="checkbox" role="switch" checked aria-describedby="autoload-help"></label>
             <p id="autoload-help" class="field-help">Si hay un save state, se carga automáticamente al empezar.</p>
           </div>
         </div>
         <div class="mods">
-          <h3 class="mods-title">Mods <span class="mods-sub">Activa lo que quieras antes de jugar</span></h3>
+          <h3 class="mods-title">Mods <span class="mods-sub">Activa lo que quieras antes de jugar · se aplican al J1 y al J2</span></h3>
           <div class="mod-grid">
             <div class="mod-item overclock-setting">
               <span class="mod-icon" aria-hidden="true"><svg><use href="#i-chip"/></svg></span>
-              <label for="overclock">Overclock <span class="mod-badge">Nuevo</span></label>
-              <select id="overclock" aria-describedby="overclock-help">
-                <option value="1">Desactivado (original)</option>
-                <option value="2" selected>×2 (recomendado)</option>
-                <option value="3">×3</option>
-                <option value="4">×4</option>
+              <label id="overclock-label">Overclock <span class="mod-badge">Nuevo</span></label>
+              <select id="overclock" data-seg aria-describedby="overclock-help">
+                <option value="1" data-short="Off">Desactivado (original)</option>
+                <option value="2" data-short="2x" selected>×2 (recomendado)</option>
+                <option value="3" data-short="3x">×3</option>
+                <option value="4" data-short="4x">×4</option>
               </select>
               <p id="overclock-help">Acelera el procesador del Neo Geo para eliminar las ralentizaciones de las escenas con muchos enemigos. El juego mantiene su velocidad normal.</p>
             </div>
@@ -138,9 +137,9 @@
             </div>
             <div class="mod-item blood-setting">
               <span class="mod-icon blood" aria-hidden="true"><svg><use href="#i-drop"/></svg></span>
-              <label for="blood-mode">Color de sangre</label>
-              <select id="blood-mode" aria-describedby="blood-help">
-                <option value="0">Sin sangre</option><option value="1">Roja</option><option value="2">Púrpura</option>
+              <label id="blood-mode-label">Color de sangre</label>
+              <select id="blood-mode" data-seg aria-describedby="blood-help">
+                <option value="0" data-short="Sin">Sin sangre</option><option value="1">Roja</option><option value="2">Púrpura</option>
               </select>
               <p id="blood-help">Personaliza los efectos durante la partida.</p>
             </div>
@@ -191,7 +190,7 @@
       <dialog id="game-menu" aria-labelledby="game-menu-title">
         <div class="menu-panel">
           <div class="menu-heading">
-            <img class="menu-logo" src="logo.png" width="278" height="160" alt="">
+            <img class="menu-logo" src="logo.png" width="276" height="160" alt="">
             <div class="menu-title"><span class="eyebrow">Pausa táctica</span><h2 id="game-menu-title">Juego en pausa</h2></div>
             <button type="button" id="menu-close" aria-label="Cerrar opciones">×</button>
           </div>
@@ -211,27 +210,45 @@
               <div class="tile-grid two">
                 <button type="button" id="touch-toggle" class="tile toggle" aria-controls="touch-layer" aria-pressed="false"><svg class="ico" aria-hidden="true"><use href="#i-pad"/></svg><span class="tile-label">Mando táctil</span><small class="state"></small></button>
                 <button type="button" id="touch-config" class="tile"><svg class="ico" aria-hidden="true"><use href="#i-move"/></svg><span class="tile-label">Ajustar mando</span><small>Mover y tamaño</small></button>
-                <button type="button" id="touch-config-1" class="tile" hidden><svg class="ico" aria-hidden="true"><use href="#i-move"/></svg><span class="tile-label">Mando J1</span><small>Ajustar jugador 1</small></button>
-                <button type="button" id="touch-config-2" class="tile" hidden><svg class="ico" aria-hidden="true"><use href="#i-move"/></svg><span class="tile-label">Mando J2</span><small>Ajustar jugador 2</small></button>
                 <button type="button" id="game-keys" class="tile" aria-haspopup="dialog"><svg class="ico" aria-hidden="true"><use href="#i-keys"/></svg><span class="tile-label">Teclado y mandos</span><small>Cambiar controles</small></button>
                 <button type="button" id="fullscreen" class="tile"><svg class="ico" aria-hidden="true"><use href="#i-full"/></svg><span class="tile-label">Pantalla completa</span><small>Entrar o salir</small></button>
               </div>
             </section>
             <section class="menu-section">
               <h3>Pantalla y rendimiento</h3>
-              <label class="switch-row"><span>Imagen</span><select id="game-display-mode"><option value="fit">Conservar proporción</option><option value="stretch">Estirar pantalla</option></select></label>
-              <label class="switch-row"><span>Overclock</span><select id="game-overclock"><option value="1">Desactivado</option><option value="2">×2</option><option value="3">×3</option><option value="4">×4</option></select></label>
+              <div class="switch-row seg-row"><span id="game-display-mode-label">Imagen</span><select id="game-display-mode" data-seg><option value="fit" data-short="Original">Conservar proporción</option><option value="stretch" data-short="Estirar">Estirar pantalla</option></select></div>
+              <div class="switch-row seg-row"><span id="game-overclock-label">Overclock</span><select id="game-overclock" data-seg><option value="1" data-short="Off">Desactivado</option><option value="2" data-short="2x">×2</option><option value="3" data-short="3x">×3</option><option value="4" data-short="4x">×4</option></select></div>
             </section>
           </div>
           <div class="menu-footer">
-            <button type="button" id="back" class="ghost"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg> Volver al inicio</button>
+            <div class="footer-actions">
+              <button type="button" id="restart" class="ghost" aria-haspopup="dialog" aria-controls="restart-confirm"><svg class="ico" aria-hidden="true"><use href="#i-restart"/></svg> Reiniciar</button>
+              <button type="button" id="back" class="ghost"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg> Volver al inicio</button>
+            </div>
             <a class="credit-link" href="https://x.com/bardock_dev" target="_blank" rel="noopener noreferrer">Bardock · X</a>
+          </div>
+          <div id="restart-confirm" class="arcade-confirm" role="alertdialog" aria-modal="true" aria-labelledby="restart-title" aria-describedby="restart-text" hidden>
+            <div class="arcade-card">
+              <div class="arcade-stripe" aria-hidden="true"></div>
+              <p class="arcade-eyebrow">Alerta</p>
+              <h3 id="restart-title" class="arcade-title">¿Reiniciar la misión?</h3>
+              <p id="restart-text" class="arcade-text">El juego vuelve a empezar desde el principio. Lo que no hayas guardado se perderá.</p>
+              <div class="arcade-actions">
+                <button type="button" id="restart-cancel" class="ghost">Cancelar</button>
+                <button type="button" id="restart-ok" class="primary">Reiniciar</button>
+              </div>
+            </div>
           </div>
         </div>
       </dialog>
       <p id="game-status" role="status"></p>
-      <section id="touch-editor" aria-label="Configurar mando táctil" hidden>
-        <p class="hint">Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.</p>
+      <section id="touch-editor" aria-labelledby="ed-title" hidden>
+        <div class="ed-handle" id="ed-handle" title="Arrastra para mover este panel">
+          <span class="ed-grip" aria-hidden="true"></span>
+          <strong id="ed-title">Ajustar mando táctil</strong>
+          <span class="ed-move-hint">Arrastra para mover</span>
+        </div>
+        <p class="hint" id="ed-hint">Toca un control para seleccionarlo y arrástralo para moverlo. Cada orientación conserva su propio diseño.</p>
         <fieldset class="ed-row" id="ed-selected" disabled>
           <span id="ed-name">—</span>
           <label>Tamaño <input type="range" id="ed-size" min="0.06" max="0.6" step="0.01"></label>

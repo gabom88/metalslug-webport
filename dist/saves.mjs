@@ -19,7 +19,10 @@ async function slot(mode, action) {
 }
 /* Earlier engines whose save-state layout is identical to this one
  * (only the page-side input changed), so their saves still load. */
-const COMPATIBLE_BUILDS = ['0ec7570a6d935e430544f9cf5e2cdd3c719cd72da0b160ff5ba00d54f00640f1'];
+const COMPATIBLE_BUILDS = [
+  '0ec7570a6d935e430544f9cf5e2cdd3c719cd72da0b160ff5ba00d54f00640f1',
+  '340eb96f89a4bbe9d7d60ce5312739e3983b076e053ace0f9f3f69c54d0c55a6',
+];
 
 export async function stateControls({ engine, canSave, clearInput, resume, doubleJump, onRestoreMods }) {
   const buildResponse = await fetch(new URL('./state-build.json', import.meta.url));

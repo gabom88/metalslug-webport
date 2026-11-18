@@ -154,7 +154,7 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 }
 @keyframes idle { 50% { transform: translateY(-5px); } }
 .cover h1 { margin: -.9rem 0 0; position: relative; }
-.cover h1 img { display: block; width: min(62vw, 14.5rem); height: auto; image-rendering: pixelated; filter: drop-shadow(0 6px 0 #0007) drop-shadow(0 0 22px #e2551f40); }
+.cover h1 img { display: block; width: min(62vw, 14.5rem); height: auto; filter: drop-shadow(0 6px 0 #0007) drop-shadow(0 0 22px #e2551f40); }
 .tagline { margin: .55rem 0 0; color: var(--muted); font-size: .95rem; line-height: 1.45; max-width: 24rem; text-wrap: balance; }
 
 .launch-actions { display: grid; gap: .7rem; width: 100%; max-width: 26rem; margin-top: 1.3rem; }
@@ -192,8 +192,9 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 .setting-field .ico { color: var(--accent); }
 .setting-field select { width: 100%; }
 .setting-field .field-help { margin: .4rem 0 0; font-size: .74rem; line-height: 1.4; color: var(--dim); }
-.setting-field .autoload-row { margin: 0; min-height: 44px; padding: .3rem .8rem; border: 1px solid var(--line-2); border-radius: 12px; background: #10130d; }
-.setting-field .autoload-row > span { display: flex; align-items: center; gap: .4rem; }
+.setting-field .toggle-field { margin: 0; min-height: 48px; padding: .3rem .8rem; border: 1px solid var(--line-2); border-radius: 12px; background: #10130d; font-size: .85rem; color: var(--text); }
+.setting-field .toggle-field > span { display: flex; align-items: center; gap: .45rem; }
+.setting-field .toggle-field:has(input:checked) { border-color: #f4b74066; background: #f4b7400e; }
 .mods { margin-top: 1.5rem; }
 .mods-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .7rem; margin: 0 0 .8rem; font-size: 1rem; }
 .mods-sub { font-size: .78rem; font-weight: 500; color: var(--dim); }
@@ -259,13 +260,21 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 }
 
 /* ---------- game screen ---------- */
-.screen { background: #080907; display: grid; place-items: center; }
+.screen { display: grid; place-items: center; }
 .game-display { position: relative; width: min(100%, 105dvh); }
 canvas { display: block; width: 100%; height: auto; aspect-ratio: 19 / 14; image-rendering: pixelated; background: black; outline: none; }
 #arcade { margin-top: .9rem; }
-#arcade:fullscreen { background: #0c0d0a; display: flex; flex-direction: column; justify-content: center; padding: .5rem; }
-#arcade:fullscreen .game-display { width: min(100%, 135.714dvh); }
-body.playing { background: #0c0d0a; }
+#arcade:fullscreen { background: #141418 url(bg-pattern.png) repeat 0 0 / 144px 160px; image-rendering: pixelated; display: flex; flex-direction: column; justify-content: center; padding: .5rem; }
+#arcade:fullscreen .game-display { width: min(100%, var(--fit-width)); }
+/* In game: the original "METAL SLUG" pattern of the How to play screen
+ * (media/bg-pattern.png, one 72x80 repeat at 2x) instead of plain black. */
+body.playing {
+  min-height: 100dvh;
+  background: #141418 url(bg-pattern.png) repeat 0 0 / 144px 160px;
+  image-rendering: pixelated;
+}
+body.playing main { image-rendering: auto; }
+@media (min-width: 1000px) and (min-height: 700px) { body.playing { background-size: 216px 240px; } }
 body.playing main { padding: 1rem 0; }
 #game-status { text-align: center; color: var(--accent-2); }
 #game-status:empty { display: none; }
@@ -277,17 +286,17 @@ body.playing main { padding: 1rem 0; }
   height: calc(16 / 224 * 100%);
 }
 @media (pointer: coarse), (max-width: 640px), (max-height: 540px) {
-  body.playing { overflow: hidden; background: #080907; }
+  body.playing { overflow: hidden; }
   body.playing main { width: 100%; max-width: none; padding: 0; }
   body.playing #arcade { position: relative; margin: 0; padding: 0; }
   body.playing .screen { border: 0; height: 100dvh; padding-inline: var(--safe-l) var(--safe-r); overflow: hidden; }
-  body.playing #arcade .game-display { width: min(100%, 135.714dvh); }
+  body.playing #arcade .game-display { width: min(100%, var(--fit-width)); }
   body.playing #game-status { position: absolute; z-index: 12; bottom: 1rem; inset-inline: 1rem; margin: 0; }
 }
 @media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
   body.playing .screen { align-content: start; padding-top: var(--safe-t); }
 }
-body.playing.stretched { overflow: hidden; background: #080907; }
+body.playing.stretched { overflow: hidden; }
 body.playing.stretched main { width: 100%; max-width: none; padding: 0; }
 body.playing.stretched #arcade { margin: 0; padding: 0; }
 body.playing.stretched .screen { width: 100%; height: 100dvh; padding: 0; place-items: stretch; align-content: stretch; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
@@ -300,8 +309,6 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 #ed-selected:disabled { opacity: .4; }
 #touch-editor { max-height: 85dvh; overflow-y: auto; background: #1b1f17f2; border: 1px solid var(--line-2); border-radius: 16px; box-shadow: 0 16px 50px #000a; padding: 10px 14px; }
 #touch-editor button, #touch-editor select { min-height: 38px; padding-block: .35rem; }
-@media (orientation: portrait) { body.touch-playing #touch-editor { top: 24%; } }
-@media (orientation: landscape) and (max-height: 540px) { body.touch-playing #touch-editor { top: 38%; } }
 
 /* ---------- floating pause button ---------- */
 #menu-btn {
@@ -333,7 +340,7 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.97); } }
 .menu-panel { padding: 1.25rem; }
 .menu-heading { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
-.menu-logo { width: 4.2rem; height: auto; image-rendering: pixelated; filter: drop-shadow(0 3px 0 #0007); }
+.menu-logo { width: 4.2rem; height: auto; filter: drop-shadow(0 3px 0 #0007); }
 .menu-title { flex: 1; min-width: 0; }
 .menu-title .eyebrow { margin-bottom: .15rem; }
 .menu-heading h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
@@ -368,7 +375,8 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 #game-display-mode, #game-overclock { min-height: 40px; padding-block: .4rem; font-size: .85rem; max-width: 65%; }
 #game-menu .menu-section > .switch-row + .switch-row { margin-top: .5rem; }
 .menu-footer { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: 1rem; }
-.menu-footer #back { display: inline-flex; align-items: center; gap: .45rem; font-size: .88rem; }
+.footer-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.menu-footer #back, .menu-footer #restart { display: inline-flex; align-items: center; gap: .45rem; font-size: .88rem; }
 .credit-link { color: var(--muted); font-size: .8rem; text-decoration: none; padding: .4rem; }
 .credit-link:hover { color: var(--accent); }
 
@@ -401,7 +409,7 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
   .save-panel .switch-row { margin-top: .5rem; }
   #save-status { margin-top: .35rem; }
   .menu-footer { margin-top: 0; }
-  .menu-footer #back { min-height: 38px; padding-block: .3rem; }
+  .menu-footer #back, .menu-footer #restart { min-height: 38px; padding-block: .3rem; }
 }
 @media (max-width: 420px) {
   .menu-panel { padding: 1rem; }
@@ -435,12 +443,20 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 /* Portrait device: player 2's half is turned 180 degrees, so both players see
  * their own copy of the game upright. If the device rotates anyway, app.mjs
  * turns the whole container back so nothing moves. */
-#duo { position: fixed; z-index: 9; inset: 0; display: grid; grid-template-rows: 1fr 1fr; background: #050604; overflow: hidden; transform-origin: 50% 50%; }
+#duo { position: fixed; z-index: 9; inset: 0; display: grid; grid-template-rows: 1fr 1fr; background: #141418 url(bg-pattern.png) repeat 0 0 / 144px 160px; image-rendering: pixelated; overflow: hidden; transform-origin: 50% 50%; }
 .duo-half { position: relative; min-height: 0; overflow: hidden; }
 .duo-p2 { transform: rotate(180deg); border-bottom: 1px solid #f4b74040; }
 .duo-p1 { border-top: 1px solid #f4b74040; }
-.duo-screen { position: absolute; inset: 0 0 auto; height: 64%; display: grid; place-items: center; padding-inline: calc(4px + var(--safe-l)) calc(4px + var(--safe-r)); }
-.duo-screen canvas { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; image-rendering: pixelated; background: transparent; }
+.duo-screen { position: absolute; inset: 24px 0 auto; height: calc(64% - 24px); display: grid; place-items: center; padding-inline: calc(4px + var(--safe-l)) calc(4px + var(--safe-r)); }
+/* Each copy of the game gets the same frame, sized to fit its area. */
+.duo-screen { container-type: size; }
+.duo-screen canvas {
+  box-sizing: content-box; aspect-ratio: auto; image-rendering: pixelated; background: #000;
+  width: min(100cqw - 2 * var(--frame-w), (100cqh - 2 * var(--frame-w)) * 19 / 14);
+  height: auto;
+  border: var(--frame-w) solid transparent;
+  border-image: url(frame.png) 4 / var(--frame-w) stretch;
+}
 .duo-tag { position: absolute; left: 50%; bottom: calc(6px + var(--safe-b)); transform: translateX(-50%); font-size: .7rem; font-weight: 800; letter-spacing: .15em; color: var(--accent); opacity: .55; pointer-events: none; }
 .duo-p2 .duo-tag { bottom: calc(6px + var(--safe-t)); }
 .duo-touch { position: absolute; inset: 0; z-index: 2; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -448,13 +464,90 @@ body.playing.stretched .game-display, body.playing.stretched canvas { min-width:
 .duo-touch.tc-editing { background: rgba(0, 0, 0, .25); }
 .duo-touch.tc-editing .tc { outline: 2px dashed rgba(255, 255, 255, .5); outline-offset: 3px; opacity: .9; }
 .duo-touch.tc-editing .tc-selected { outline: 3px solid var(--accent); }
-body.duo-playing { overflow: hidden; background: #050604; }
+body.duo-playing { overflow: hidden; }
 body.duo-playing .screen { visibility: hidden; height: 100dvh; }
 body.duo-playing main { width: 100%; max-width: none; padding: 0; }
 /* The menu button sits where the two screens meet. */
-body.duo-playing #menu-btn { top: 50%; left: auto; right: calc(6px + var(--safe-r)); transform: translateY(-50%); width: 40px; height: 40px; min-height: 40px; }
-body.duo-playing #menu-btn:active:not(:disabled) { transform: translateY(-50%) scale(.94); }
-body.duo-playing #touch-editor { top: 75%; }
-body.duo-playing #touch-editor.for-p2 { top: 25%; transform: translate(-50%, -50%) rotate(180deg); }
+/* The two screens keep a 48px strip between them for the menu button. */
+body.duo-playing #menu-btn { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 38px; min-height: 38px; }
+body.duo-playing #menu-btn:active:not(:disabled) { transform: translate(-50%, -50%) scale(.94); }
 body.duo-playing #game-status { position: fixed; z-index: 12; top: 50%; inset-inline: 1rem; transform: translateY(-50%); margin: 0; }
 body.duo-editing #menu-btn { visibility: hidden; }
+
+/* ---------- segmented choices (built from <select data-seg> by app.mjs) ---------- */
+.seg-source { display: none !important; }
+.seg { display: flex; gap: .25rem; padding: .25rem; border: 1px solid var(--line-2); border-radius: 12px; background: #10130d; min-width: 0; }
+.seg button {
+  flex: 1 1 0; min-width: 0; min-height: 38px; padding: .3rem .35rem;
+  border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+  font-size: .88rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seg button:hover:not(:disabled) { border: 0; background: #ffffff0f; color: var(--text); }
+.seg button[aria-checked="true"], .seg button[aria-checked="true"]:hover:not(:disabled) {
+  color: var(--accent-text); background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  box-shadow: 0 2px 0 var(--accent-deep);
+}
+.seg button:active:not(:disabled) { transform: translateY(1px); }
+.overclock-setting .seg { grid-column: 2; }
+.blood-setting .seg { grid-column: 1 / -1; margin-top: .45rem; }
+#game-menu .seg-row .seg { flex: 0 1 68%; }
+#game-menu .seg-row .seg button { min-height: 34px; font-size: .84rem; }
+
+/* ---------- arcade-style confirmation (restart) ---------- */
+.menu-panel { position: relative; }
+.arcade-confirm {
+  position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 1rem;
+  border-radius: inherit; background: #050604d9; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.arcade-card {
+  position: relative; width: min(22rem, 100%); padding: 1.7rem 1.2rem 1.15rem; text-align: center; overflow: hidden;
+  background: linear-gradient(180deg, #262d1d, #121510);
+  border: 3px solid var(--accent); box-shadow: 0 0 0 4px #1a0e00, 0 24px 60px #000d;
+  animation: arcade-pop .24s steps(3, end);
+}
+.arcade-stripe { position: absolute; inset: 0 0 auto; height: 10px; background: repeating-linear-gradient(-45deg, var(--accent) 0 10px, #1a0e00 10px 20px); }
+.arcade-eyebrow { margin: .1rem 0 .25rem; font-size: .72rem; font-weight: 900; letter-spacing: .32em; text-transform: uppercase; color: #ff7a45; animation: tc-guide-blink 1s steps(1) infinite; }
+.arcade-title {
+  margin: 0 0 .55rem; font-size: clamp(1.25rem, 5vw, 1.6rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: .03em;
+  color: #ffd84a;
+  text-shadow: 2px 0 #1a0e00, -2px 0 #1a0e00, 0 2px #1a0e00, 0 -2px #1a0e00, 2px 2px #1a0e00, -2px 2px #1a0e00, 2px -2px #1a0e00, -2px -2px #1a0e00, 0 4px 0 #6b3a00;
+}
+.arcade-text { margin: 0 0 1.1rem; color: var(--muted); font-size: .86rem; line-height: 1.45; }
+.arcade-actions { display: flex; gap: .6rem; }
+.arcade-actions button { flex: 1 1 0; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+@keyframes arcade-pop { from { transform: scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .arcade-card, .arcade-eyebrow { animation: none; } }
+
+/* ---------- touch editor: centred, draggable by its title bar ---------- */
+#touch-editor { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.ed-handle {
+  display: flex; align-items: center; gap: .55rem; margin: -10px -14px 6px; padding: 8px 14px;
+  border-bottom: 1px solid var(--line-2); border-radius: 16px 16px 0 0; background: #f4b74014;
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
+}
+.ed-handle:active { cursor: grabbing; }
+.ed-handle strong { font-size: .9rem; }
+.ed-move-hint { margin-left: auto; font-size: .72rem; color: var(--dim); }
+.ed-grip { width: 14px; height: 14px; flex-shrink: 0; background: radial-gradient(circle, var(--accent) 1.4px, transparent 1.6px) 0 0 / 5px 5px; }
+
+/* ---------- portrait: credit, start and menu go below the game ---------- */
+:root { --game-bottom: calc(var(--safe-t) + (min(100vw - var(--safe-l) - var(--safe-r), var(--fit-width)) - 2 * var(--frame-w)) * 14 / 19 + 2 * var(--frame-w)); }
+@media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
+  body.playing:not(.stretched):not(.duo-playing) #touch-layer { top: var(--game-bottom); }
+  body.touch-playing:not(.stretched):not(.duo-playing) #menu-btn {
+    top: calc(var(--game-bottom) + (100dvh - var(--game-bottom)) * .08 - 17px);
+  }
+}
+
+/* ---------- the How to play window frame around the game ---------- */
+/* media/frame.png is the original border (4px corners, 1px edges) shown as a
+ * nine-slice; --fit-width is the widest game that still fits the height. */
+:root {
+  --frame-w: clamp(6px, 1.3vmin, 12px);
+  --fit-width: calc((100dvh - 2 * var(--frame-w)) * 19 / 14 + 2 * var(--frame-w));
+}
+body.playing:not(.stretched) .game-display {
+  border: var(--frame-w) solid transparent;
+  border-image: url(frame.png) 4 / var(--frame-w) stretch;
+  image-rendering: pixelated;
+}

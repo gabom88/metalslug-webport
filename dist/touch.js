@@ -45,16 +45,18 @@ const MetalSlugTouch = (() => {
       coin: { x: 0.06, y: 0.10, size: 0.12, visible: true },
       start:  { x: 0.94, y: 0.10, size: 0.12, visible: true },
     },
-    // The game occupies the top 4:3 band (see .portrait-play in app.css).
+        // Portrait: the layer starts below the game (see style.css), so these
+    // are fractions of the free area under it. Coin, the menu button and
+    // start share its top row.
     portrait: {
-      dpad:   { x: 0.26, y: 0.72, size: 0.44, visible: true },
-      stick:  { x: 0.26, y: 0.72, size: 0.44, visible: false },
-      jump:   { x: 0.75, y: 0.81, size: 0.19, visible: true },
-      fire:  { x: 0.60, y: 0.71, size: 0.19, visible: true },
-      grenade:   { x: 0.75, y: 0.61, size: 0.19, visible: true },
-      dash: { x: 0.90, y: 0.71, size: 0.19, visible: true },
-      coin: { x: 0.08, y: 0.06, size: 0.13, visible: true },
-      start:  { x: 0.92, y: 0.06, size: 0.13, visible: true },
+      dpad:   { x: 0.26, y: 0.58, size: 0.44, visible: true },
+      stick:  { x: 0.26, y: 0.58, size: 0.44, visible: false },
+      jump:   { x: 0.75, y: 0.75, size: 0.19, visible: true },
+      fire:  { x: 0.60, y: 0.58, size: 0.19, visible: true },
+      grenade:   { x: 0.75, y: 0.42, size: 0.19, visible: true },
+      dash: { x: 0.90, y: 0.58, size: 0.19, visible: true },
+      coin: { x: 0.12, y: 0.08, size: 0.13, visible: true },
+      start:  { x: 0.88, y: 0.08, size: 0.13, visible: true },
     },
     // Split-screen: one half of the device per player, in that half's own
     // coordinates (its top edge is the middle of the device). The game takes
@@ -66,13 +68,21 @@ const MetalSlugTouch = (() => {
       fire:   { x: 0.63, y: 0.84, size: 0.16, visible: true },
       grenade: { x: 0.80, y: 0.74, size: 0.16, visible: true },
       dash:   { x: 0.95, y: 0.82, size: 0.15, visible: true },
-      coin:   { x: 0.07, y: 0.07, size: 0.11, visible: true },
-      start:  { x: 0.93, y: 0.07, size: 0.11, visible: true },
+      // Coin and start sit between the cross and the buttons, under the game.
+      coin:   { x: 0.45, y: 0.72, size: 0.10, visible: true },
+      start:  { x: 0.45, y: 0.91, size: 0.10, visible: true },
     },
   };
   // Layouts saved before this revision keep their positions, except coin and
   // start, which moved to the top corners.
-  const LAYOUT_REV = 2;
+  // Rev 2 moved coin and start; rev 3 made portrait relative to the area
+  // under the game and moved split-screen coin and start under the game.
+  const LAYOUT_REV = 3;
+  function staleSaved(rev, o, id) {
+    const coinOrStart = id === 'coin' || id === 'start';
+    return ((rev || 1) < 2 && coinOrStart) ||
+      ((rev || 1) < 3 && (o === 'portrait' || (o === 'duo' && coinOrStart)));
+  }
   const DEFAULT_SETTINGS = { opacity: 0.7, mode: 'dpad', haptics: true, dashEnabled: false };
   // Each pad's D-pad SVG needs its own mask/gradient ids: url(#id) resolves
   // to the first match in the page, which may sit in a hidden layer.
@@ -143,7 +153,7 @@ const MetalSlugTouch = (() => {
         for (const o of LAYOUT_KEYS) {
           const so = (saved.layouts || {})[o] || {};
           for (const id in so) {
-            if (saved.rev !== LAYOUT_REV && (id === 'coin' || id === 'start')) continue;
+            if (staleSaved(saved.rev, o, id)) continue;
             if (layouts[o][id]) Object.assign(layouts[o][id], so[id]);
           }
         }
@@ -521,6 +531,13 @@ const MetalSlugTouch = (() => {
     layout();
   }
 
+  // Clear the selection (split screen: a control was picked in the other half).
+  function deselect() {
+    selectedId = null;
+    drag = null;
+    layout();
+  }
+
   function release() {
     for (const p of pointers.values()) resetStickKnob(p.id);
     pointers.clear();
@@ -528,7 +545,7 @@ const MetalSlugTouch = (() => {
   }
 
   return {
-    init, show, guide, setEditing, updateSelected, setSetting, reset, release, showAll, orientation, layout,
+    init, show, guide, deselect, setEditing, updateSelected, setSetting, reset, release, showAll, orientation, layout,
     get settings() { return settings; },
     get shown() { return shown; },
     get editing() { return editing; },

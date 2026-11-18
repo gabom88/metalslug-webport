@@ -28,6 +28,15 @@ static int regression(void) {
         shots += !!(input.p1 & NG_A);
     }
     if (shots != 6) return 43;
+    /* Turbo for player 2 as well. */
+    int shots2 = 0;
+    for (int frame = 0; frame < 12; frame++) {
+        ng_input_t input = {0}; input.p2 = NG_A;
+        extra_input(&input);
+        shots2 += !!(input.p2 & NG_A);
+    }
+    if (shots2 != 6) return 49;
+    { ng_input_t idle = {0}; extra_input(&idle); }
     ng_input_t released = {0}; extra_input(&released);
     if (web_turbo_phase) return 44;
     web_extra_options(0, 0);
@@ -88,6 +97,17 @@ static int regression(void) {
     if (ng_r16(0x10046a) != 0x100) return 28;
     ng_w32(0x100440, 0x33ede); double_jump(&in);
     if (web_extra_used) return 29;
+    /* Player 2's object gets the same second jump while player 2 plays. */
+    ng_w8(0x10fdb7, 1);
+    ng_w32(0x1004e0, 0x36a70);
+    ng_w16(0x10050a, 0xff00);
+    web_previous_jump2 = web_extra_used2 = 0;
+    in.p1 = 0; in.p2 = NG_B; double_jump(&in);
+    if (!web_extra_used2 || ng_r16(0x10050a) != 0x9cd) return 39;
+    ng_w8(0x10fdb7, 0); ng_w16(0x10050a, 0x100);
+    web_previous_jump2 = web_extra_used2 = 0;
+    double_jump(&in);
+    if (ng_r16(0x10050a) != 0x100) return 50;
     web_dash_enabled = 1;
     web_previous_dash = web_dash_cooldown = web_dash_ticks = 0;
     in.p1 = NG_RIGHT; dash(&in, 1);
