@@ -264,11 +264,12 @@ body:not(.playing) main { padding: calc(clamp(1.25rem, 4dvh, 3rem) + var(--safe-
 
 /* ---------- game screen ---------- */
 .screen { display: grid; place-items: center; }
-.game-display { position: relative; width: min(100%, 105dvh); }
+/* --base-w is the normal width; "Ajustar pantalla" multiplies it. */
+.game-display { position: relative; --base-w: min(100%, 105dvh); width: calc(var(--base-w) * var(--screen-scale, 1)); }
 canvas { display: block; width: 100%; height: auto; aspect-ratio: 19 / 14; image-rendering: pixelated; background: black; outline: none; }
 #arcade { margin-top: .9rem; }
 #arcade:fullscreen { background: #141418 url(bg-pattern.png) repeat 0 0 / 144px 160px; image-rendering: pixelated; display: flex; flex-direction: column; justify-content: center; padding: .5rem; }
-#arcade:fullscreen .game-display { width: min(100%, var(--fit-width)); }
+#arcade:fullscreen .game-display { --base-w: min(100%, var(--fit-width)); }
 /* In game: the original "METAL SLUG" pattern of the How to play screen
  * (media/bg-pattern.png, one 72x80 repeat at 2x) instead of plain black. */
 body.playing {
@@ -293,7 +294,7 @@ body.playing main { padding: 1rem 0; }
   body.playing main { width: 100%; max-width: none; padding: 0; }
   body.playing #arcade { position: relative; margin: 0; padding: 0; }
   body.playing .screen { border: 0; height: 100dvh; padding-inline: var(--safe-l) var(--safe-r); overflow: hidden; }
-  body.playing #arcade .game-display { width: min(100%, var(--fit-width)); }
+  body.playing #arcade .game-display { --base-w: min(100%, var(--fit-width)); }
   body.playing #game-status { position: absolute; z-index: 12; bottom: 1rem; inset-inline: 1rem; margin: 0; }
 }
 @media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
@@ -537,9 +538,12 @@ body.duo-playing #game-status { position: fixed; z-index: 12; top: 50%; inset-in
 
 /* ---------- game screen position and size (pause menu > Ajustar pantalla) ---------- */
 :root { --screen-x: 0; --screen-y: 0; --screen-s: 1; }
+/* Plain layout (relative offset and width), no CSS transform: on iOS a
+ * transformed parent of the WebGL canvas stopped painting the frame. */
 body.playing:not(.stretched):not(.duo-playing) .game-display {
-  transform: translate(calc(var(--screen-x) * 100vw), calc(var(--screen-y) * 100vh)) scale(var(--screen-s));
-  transform-origin: 50% 50%;
+  --screen-scale: var(--screen-s);
+  left: calc(var(--screen-x) * 100vw);
+  top: calc(var(--screen-y) * 100vh);
 }
 #screen-edit-layer { position: fixed; inset: 0; z-index: 20; cursor: move; touch-action: none; background: #00000026; }
 body.screen-editing .game-display { outline: 2px dashed #f4b740cc; outline-offset: 4px; }
@@ -573,14 +577,32 @@ body.screen-editing #menu-btn { visibility: hidden; }
   --fit-width: calc((100dvh - 2 * var(--frame-w)) * 19 / 14 + 2 * var(--frame-w));
 }
 body.playing:not(.stretched) .game-display { border: var(--frame-w) solid transparent; }
-/* The frame is drawn by its own layer above the canvas: Safari composites
- * the canvas separately and could paint it over the element's own border.
- * media/frame.png is the 9x9 nine-slice at 4x (16px corners). */
+/* The frame is its own layer above the canvas, painted with eight plain
+ * backgrounds (corners and edges of media/frame.png, the 9x9 nine-slice)
+ * rather than border-image, which iOS Safari dropped next to the canvas. */
+:root {
+  --frame-tl: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPElEQVR42mMsLS39r6GhwQADLA8ePGDQ0NBgSEpKgggwMDAwJCUlMejqmjJ8+PCBgQmmVFNTkeHJkzuMAO8TDr0gjaRYAAAAAElFTkSuQmCC);
+  --frame-tr: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAQUlEQVR42jXLsQ2AMAxFwW/mSINEEyklq3g8ew6P4oIyezwauP4sItCnu2UAkpSZqippjIu1bgDcnWPvx+Y8/6UXooYZWWWAp+8AAAAASUVORK5CYII=);
+  --frame-bl: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAMklEQVR42jXKMQEAIAwDwYCSCuiIlciLxzp4Frj5ZBsA20jS1lNVSoJsk4RvdR9m5kddyd0cWYYXFr0AAAAASUVORK5CYII=);
+  --frame-br: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAN0lEQVR42jXJMQHAIAwAwacKIoCBoZYiL9ERd8/ErQdAZqqamX5V5TmHZ6kCdDczw9r7921EcAFLCRS8UCXziwAAAABJRU5ErkJggg==);
+  --frame-t: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAECAYAAABP2FU6AAAAHElEQVR42gXBMQEAMBADIYT8WNvRegXbUuXuBT5rwggu+olstwAAAABJRU5ErkJggg==);
+  --frame-b: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAECAYAAABP2FU6AAAAHElEQVR42gXBMQEAMBADIYT8WNvRegVgW6rcvT5C4Qgu/tVHDQAAAABJRU5ErkJggg==);
+  --frame-l: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAAGElEQVR42gXBAQEAAABAICf9n0KhVqUGMFG/B/nZogKNAAAAAElFTkSuQmCC);
+  --frame-r: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAAGElEQVR42gXBAQEAAABAICf9n0IBoFalNjHfB/kyrRcrAAAAAElFTkSuQmCC);
+}
+body.playing:not(.stretched) .game-display canvas, .duo-frame canvas { position: relative; z-index: 1; }
 body.playing:not(.stretched) .game-display::after, .duo-frame::after {
+  --f: var(--frame-w);
   content: ''; position: absolute; z-index: 2; pointer-events: none;
-  inset: calc(-1 * var(--frame-w));
-  border: var(--frame-w) solid transparent;
-  border-image: url(frame.png) 16 / var(--frame-w) stretch;
+  inset: calc(-1 * var(--f));
   image-rendering: pixelated;
-  -webkit-transform: translateZ(0); transform: translateZ(0);
+  background:
+    var(--frame-tl) left top / var(--f) var(--f) no-repeat,
+    var(--frame-tr) right top / var(--f) var(--f) no-repeat,
+    var(--frame-bl) left bottom / var(--f) var(--f) no-repeat,
+    var(--frame-br) right bottom / var(--f) var(--f) no-repeat,
+    var(--frame-t) var(--f) top / calc(100% - 2 * var(--f)) var(--f) no-repeat,
+    var(--frame-b) var(--f) bottom / calc(100% - 2 * var(--f)) var(--f) no-repeat,
+    var(--frame-l) left var(--f) / var(--f) calc(100% - 2 * var(--f)) no-repeat,
+    var(--frame-r) right var(--f) / var(--f) calc(100% - 2 * var(--f)) no-repeat;
 }

@@ -1,4 +1,4 @@
-const CACHE = 'mslug-web-36';
+const CACHE = 'mslug-web-37';
 const ASSETS = [
   './', './index.html', './style.css', './app.mjs', './saves.mjs', './state-build.json', './touch.css', './touch.js', './dpad-gemuboy.js', './metalslug.js', './metalslug.wasm', './game-data.mjs', './metalslug-parts.json', './metalslug-part1.data', './metalslug-part2.data',
   './manifest.webmanifest', './keyboard.mjs', './player1.png', './player2.png', './logo.png', './bg-pattern.png', './frame.png', './pwa-180.png', './pwa-192.png', './pwa-512.png', './pwa-maskable.png',
