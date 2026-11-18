@@ -51,7 +51,7 @@ cmake --build build-web --parallel 4
 
 Si usas `MSLUG_GENERATED`, genera las rutinas a partir de una copia de la ROM con el crédito aplicado por `scripts/title-credit.mjs`. El código recompilado a partir del juego original puede dibujar el texto antiguo. La compilación estándar usa el intérprete y aplica el crédito a la copia del programa contenida en el paquete. Si cambias la compilación o los archivos de `dist/`, incrementa el identificador `CACHE` en `dist/sw.js` para actualizar la copia del navegador.
 
-La compilación genera `metalslug.data` dentro de `build-web/runtime/`. El objetivo `web_bundle` prepara las dos partes y su manifiesto en `dist/`. Ejecuta `node scripts/package-web.mjs --verify` para comprobar la reconstrucción antes de publicar. Edita las imágenes de entrada en `media/`; la compilación copia `character.png` y `logo.png` a `dist/`.
+La compilación genera `metalslug.data` dentro de `build-web/runtime/`. El objetivo `web_bundle` prepara las dos partes y su manifiesto en `dist/`. Ejecuta `node scripts/package-web.mjs --verify` para comprobar la reconstrucción antes de publicar. Edita las imágenes de entrada en `media/`; la compilación copia `player1.png`, `player2.png`, `logo.png`, `bg-pattern.png` y `frame.png` a `dist/`.
 ## Partidas, misiones y mods
 
 En el inicio, **Nivel inicial** permite elegir la pantalla de título o una de las seis misiones. Al elegir una misión, el juego inserta una moneda e inicia esa partida. La presentación de Neo Geo se avanza hasta que la BIOS entrega el control al juego. La introducción de Metal Slug, incluida la escena del tanque, se reproduce completa. Si elegiste una misión, el inicio automático espera a que termine la introducción.
