@@ -275,32 +275,33 @@ function openEditor() {
   $('ed-done').focus({ preventScroll: true });
 }
 $('touch-config').addEventListener('click', openEditor);
-/* Drag the panel by its title bar, kept inside the screen. */
-{
+/* Floating panels (touch editor, screen editor) move by their title bar,
+ * kept inside the screen; a resize puts them back in the centre. */
+function draggablePanel(panel, handle) {
   let grab = null;
-  const handle = $('ed-handle');
   handle.addEventListener('pointerdown', (event) => {
-    const rect = editor.getBoundingClientRect();
+    const rect = panel.getBoundingClientRect();
     grab = { id: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
-    editor.style.transform = 'none';
-    editor.style.left = rect.left + 'px';
-    editor.style.top = rect.top + 'px';
+    panel.style.transform = 'none';
+    panel.style.left = rect.left + 'px';
+    panel.style.top = rect.top + 'px';
     try { handle.setPointerCapture(event.pointerId); } catch { /* ignore */ }
     event.preventDefault();
   });
   handle.addEventListener('pointermove', (event) => {
     if (!grab || grab.id !== event.pointerId) return;
-    const rect = editor.getBoundingClientRect();
-    const left = Math.max(0, Math.min(innerWidth - rect.width, event.clientX - grab.dx));
-    const top = Math.max(0, Math.min(innerHeight - rect.height, event.clientY - grab.dy));
-    editor.style.left = left + 'px';
-    editor.style.top = top + 'px';
+    const rect = panel.getBoundingClientRect();
+    panel.style.left = Math.max(0, Math.min(innerWidth - rect.width, event.clientX - grab.dx)) + 'px';
+    panel.style.top = Math.max(0, Math.min(innerHeight - rect.height, event.clientY - grab.dy)) + 'px';
   });
   const drop = (event) => { if (grab && grab.id === event.pointerId) grab = null; };
   handle.addEventListener('pointerup', drop);
   handle.addEventListener('pointercancel', drop);
-  window.addEventListener('resize', () => { if (!editor.hidden && editor.style.transform === 'none') centerEditor(); });
+  window.addEventListener('resize', () => {
+    if (!panel.hidden && panel.style.transform === 'none') panel.style.left = panel.style.top = panel.style.transform = '';
+  });
 }
+draggablePanel(editor, $('ed-handle'));
 $('ed-size').addEventListener('input', (event) => activeTouch.updateSelected({ size: Number(event.target.value) }));
 $('ed-hide').addEventListener('click', () => {
   if (['dpad', 'stick'].includes(activeTouch.selected?.id)) return;
@@ -335,6 +336,118 @@ $('ed-done').addEventListener('click', () => {
   paintGuide();
   menuButton.focus({ preventScroll: true });
 });
+
+/* ---- game screen position and size (one setting per orientation) ----
+ * Offsets are fractions of the viewport so they survive resizes; the frame
+ * is the game display's own border, so it moves and scales with it. */
+const SCREEN_KEY = 'mslug.screen.v1';
+const screenDefaults = { x: 0, y: 0, s: 1 };
+const portraitScreen = matchMedia('(orientation: portrait)');
+const screenOrientation = () => (portraitScreen.matches ? 'portrait' : 'landscape');
+let screenPlaces = {};
+try { screenPlaces = JSON.parse(localStorage.getItem(SCREEN_KEY)) || {}; } catch { screenPlaces = {}; }
+const clampScreen = ({ x, y, s }) => ({
+  x: Math.max(-0.5, Math.min(0.5, Number(x) || 0)),
+  y: Math.max(-0.5, Math.min(0.5, Number(y) || 0)),
+  s: Math.max(0.4, Math.min(2, Number(s) || 1)),
+});
+const screenPlace = () => clampScreen({ ...screenDefaults, ...screenPlaces[screenOrientation()] });
+function applyScreen() {
+  const { x, y, s } = screenPlace();
+  const root = document.documentElement.style;
+  root.setProperty('--screen-x', String(x));
+  root.setProperty('--screen-y', String(y));
+  root.setProperty('--screen-s', String(s));
+  $('se-size').value = s;
+  $('se-size-value').textContent = Math.round(s * 100) + '%';
+}
+function setScreen(changes) {
+  screenPlaces[screenOrientation()] = clampScreen({ ...screenPlace(), ...changes });
+  remember(SCREEN_KEY, JSON.stringify(screenPlaces));
+  applyScreen();
+}
+portraitScreen.addEventListener?.('change', applyScreen);
+applyScreen();
+
+const screenEditor = $('screen-editor');
+const screenLayer = $('screen-edit-layer');
+draggablePanel(screenEditor, $('se-handle'));
+function paintScreenTile() {
+  const usable = !duo && !document.body.classList.contains('stretched');
+  $('screen-config').disabled = !usable;
+  $('screen-config-note').textContent = duo ? 'Solo con 1 jugador' : usable ? 'Mover y tamaño' : 'Solo en imagen Original';
+}
+menu.addEventListener('close', paintScreenTile);
+menuButton.addEventListener('click', paintScreenTile);
+$('screen-config').addEventListener('click', () => {
+  closeMenu();
+  engine._web_pause(true);
+  clearInput();
+  document.body.classList.add('screen-editing');
+  screenLayer.hidden = false;
+  screenEditor.style.left = screenEditor.style.top = screenEditor.style.transform = '';
+  screenEditor.hidden = false;
+  applyScreen();
+  $('se-done').focus({ preventScroll: true });
+});
+$('se-done').addEventListener('click', () => {
+  screenEditor.hidden = true;
+  screenLayer.hidden = true;
+  document.body.classList.remove('screen-editing');
+  engine._web_pause(false);
+  menuButton.focus({ preventScroll: true });
+});
+$('se-size').addEventListener('input', (event) => setScreen({ s: Number(event.target.value) }));
+$('se-center').addEventListener('click', () => setScreen({ x: 0, y: 0 }));
+$('se-reset').addEventListener('click', () => setScreen({ ...screenDefaults }));
+for (const button of screenEditor.querySelectorAll('[data-nudge]')) {
+  button.addEventListener('click', () => {
+    const [dx, dy] = button.dataset.nudge.split(',').map(Number);
+    const { x, y } = screenPlace();
+    setScreen({ x: x + dx * 0.01, y: y + dy * 0.01 });
+  });
+}
+/* Drag with one finger or the mouse; pinch with two fingers to resize. */
+{
+  const active = new Map();
+  let start = null;
+  const snapshot = () => {
+    const points = [...active.values()];
+    const place = screenPlace();
+    if (points.length >= 2) {
+      const [a, b] = points;
+      return { place, pinch: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+    }
+    return { place, cx: points[0].x, cy: points[0].y };
+  };
+  screenLayer.addEventListener('pointerdown', (event) => {
+    active.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    try { screenLayer.setPointerCapture(event.pointerId); } catch { /* ignore */ }
+    start = snapshot();
+    event.preventDefault();
+  });
+  screenLayer.addEventListener('pointermove', (event) => {
+    if (!active.has(event.pointerId) || !start) return;
+    active.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const now = snapshot();
+    const changes = {
+      x: start.place.x + (now.cx - start.cx) / innerWidth,
+      y: start.place.y + (now.cy - start.cy) / innerHeight,
+    };
+    if (start.pinch && now.pinch) changes.s = start.place.s * now.pinch / start.pinch;
+    setScreen(changes);
+  });
+  const lift = (event) => {
+    if (!active.delete(event.pointerId)) return;
+    start = active.size ? snapshot() : null;
+  };
+  screenLayer.addEventListener('pointerup', lift);
+  screenLayer.addEventListener('pointercancel', lift);
+  screenLayer.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    setScreen({ s: screenPlace().s * (event.deltaY < 0 ? 1.05 : 1 / 1.05) });
+  }, { passive: false });
+}
 
 /* ---- restart, confirmed with an in-game panel (not the browser's) ---- */
 const restartBox = $('restart-confirm');

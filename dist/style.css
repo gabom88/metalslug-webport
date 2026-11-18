@@ -533,6 +533,27 @@ body.duo-editing #menu-btn { visibility: hidden; }
 .ed-move-hint { margin-left: auto; font-size: .72rem; color: var(--dim); }
 .ed-grip { width: 14px; height: 14px; flex-shrink: 0; background: radial-gradient(circle, var(--accent) 1.4px, transparent 1.6px) 0 0 / 5px 5px; }
 
+/* ---------- game screen position and size (pause menu > Ajustar pantalla) ---------- */
+:root { --screen-x: 0; --screen-y: 0; --screen-s: 1; }
+body.playing:not(.stretched):not(.duo-playing) .game-display {
+  transform: translate(calc(var(--screen-x) * 100vw), calc(var(--screen-y) * 100vh)) scale(var(--screen-s));
+  transform-origin: 50% 50%;
+}
+#screen-edit-layer { position: fixed; inset: 0; z-index: 20; cursor: move; touch-action: none; background: #00000026; }
+body.screen-editing .game-display { outline: 2px dashed #f4b740cc; outline-offset: 4px; }
+body.screen-editing #menu-btn { visibility: hidden; }
+#screen-editor {
+  position: fixed; z-index: 35; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 24px - var(--safe-l) - var(--safe-r)));
+  max-height: 85dvh; overflow-y: auto; font-size: 14px;
+  background: #1b1f17f2; border: 1px solid var(--line-2); border-radius: 16px; box-shadow: 0 16px 50px #000a; padding: 10px 14px;
+}
+#screen-editor .hint { margin: 2px 0 6px; font-size: 12.5px; }
+#screen-editor button { min-height: 38px; padding-block: .35rem; }
+#se-size { width: min(220px, 50vw); }
+#se-size-value { min-width: 3.2em; font-weight: 700; color: var(--accent-2); }
+.se-nudge button { min-width: 44px; font-size: 1.05rem; }
+
 /* ---------- portrait: credit, start and menu go below the game ---------- */
 :root { --game-bottom: calc(var(--safe-t) + (min(100vw - var(--safe-l) - var(--safe-r), var(--fit-width)) - 2 * var(--frame-w)) * 14 / 19 + 2 * var(--frame-w)); }
 @media (orientation: portrait) and (max-width: 640px), (pointer: coarse) and (orientation: portrait) {
